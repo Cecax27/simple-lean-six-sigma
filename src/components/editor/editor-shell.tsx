@@ -327,7 +327,7 @@ export function EditorShell() {
           </div>
         </header>
 
-        <main className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain rounded-lg border bg-card p-4 lg:grid-cols-5">
+        <main className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain rounded-lg border bg-card p-4 lg:grid-cols-5 lg:overflow-hidden">
           <SectionCard
             title="Proveedores"
             items={current.suppliers}
