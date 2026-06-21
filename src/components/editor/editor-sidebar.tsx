@@ -126,7 +126,7 @@ export function DesktopSidebar({ collapsed, onToggle, onOpenSettings }: DesktopS
   return (
     <aside
       className={cn(
-        "hidden shrink-0 rounded-xl border bg-card p-3 shadow-sm transition-all duration-300 md:flex md:flex-col",
+        "hidden h-full shrink-0 rounded-xl border bg-card p-3 shadow-sm transition-all duration-300 md:flex md:flex-col",
         collapsed ? "md:w-16" : "md:w-64",
       )}
     >

@@ -163,11 +163,11 @@ export function EditorShell() {
         : { title: "Informacion", icon: Info, variant: "default" as const };
 
   return (
-    <div className="flex min-h-[calc(100vh-2rem)] gap-4">
+    <div className="flex h-[calc(100dvh-2rem)] min-h-0 gap-4 overflow-hidden md:h-[calc(100dvh-3rem)]">
       <DesktopSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} onOpenSettings={() => setSettingsOpen(true)} />
 
-      <div className="min-w-0 flex-1 space-y-5">
-        <header className="rounded-lg border bg-card p-4">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-hidden">
+        <header className="shrink-0 rounded-lg border bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-start gap-2">
               <MobileSidebar
@@ -247,7 +247,7 @@ export function EditorShell() {
           ) : null}
         </header>
 
-        <main className="grid gap-4 rounded-lg border bg-card p-4 lg:grid-cols-5">
+        <main className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain rounded-lg border bg-card p-4 lg:grid-cols-5">
           <SectionCard
             title="Proveedores"
             items={current.suppliers}
