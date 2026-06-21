@@ -21,6 +21,7 @@ interface SIPOCStore extends SIPOCState {
   removeProcess: (processId: string) => void;
   enterProcess: (processId: string) => void;
   navigateToLevel: (level: number) => void;
+  navigateToPath: (path: string[]) => void;
   replaceRoot: (root: SIPOCDiagram) => void;
   reset: () => void;
   getCurrent: () => SIPOCDiagram;
@@ -88,6 +89,23 @@ export const useSipocStore = create<SIPOCStore>((set, get) => ({
     set((state) => ({
       path: state.path.slice(0, level),
     }));
+  },
+  navigateToPath: (targetPath) => {
+    set((state) => {
+      let current = state.root;
+
+      for (const processId of targetPath) {
+        const process = current.processes.find((entry) => entry.id === processId);
+        if (!process?.child) {
+          return state;
+        }
+        current = process.child;
+      }
+
+      return {
+        path: targetPath,
+      };
+    });
   },
   replaceRoot: (root) => {
     set({ root, path: [] });

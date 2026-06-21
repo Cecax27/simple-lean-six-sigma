@@ -7,6 +7,8 @@
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
   --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
   --primary: 198 70% 32%;
   --primary-foreground: 210 40% 98%;
   --secondary: 34 65% 92%;
@@ -20,11 +22,33 @@
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 198 70% 32%;
-  --radius: 0.75rem;
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: 220 18% 10%;
+  --foreground: 210 40% 96%;
+  --card: 220 18% 14%;
+  --card-foreground: 210 40% 96%;
+  --popover: 220 18% 12%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 190 80% 62%;
+  --primary-foreground: 220 35% 8%;
+  --secondary: 220 15% 20%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 220 15% 18%;
+  --muted-foreground: 216 15% 75%;
+  --accent: 210 16% 22%;
+  --accent-foreground: 210 40% 96%;
+  --destructive: 0 63% 45%;
+  --destructive-foreground: 210 40% 96%;
+  --border: 218 18% 24%;
+  --input: 218 18% 24%;
+  --ring: 190 80% 62%;
 }
 
 * {
-  @apply border-border;
+  @apply border-border outline-ring/50;
 }
 
 body {
@@ -32,4 +56,23 @@ body {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   background-image: radial-gradient(circle at 20% 20%, hsl(34 80% 93%) 0%, transparent 42%),
     radial-gradient(circle at 80% 10%, hsl(198 80% 94%) 0%, transparent 38%);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.dark) body {
+    background-image: radial-gradient(circle at 20% 20%, hsl(220 16% 20%) 0%, transparent 42%),
+      radial-gradient(circle at 80% 10%, hsl(190 30% 18%) 0%, transparent 38%);
+  }
+}
+
+.dark body {
+  background-image: radial-gradient(circle at 20% 20%, hsl(220 16% 20%) 0%, transparent 42%),
+    radial-gradient(circle at 80% 10%, hsl(190 30% 18%) 0%, transparent 38%);
+
+}
+
+@layer base {
+  html {
+    @apply font-sans;
+  }
 }
