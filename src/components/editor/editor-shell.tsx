@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Download, FileUp, FileType2, ImageDown, Info, RotateCcw, VectorSquare } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { BreadcrumbNav } from "@/components/editor/breadcrumb-nav";
@@ -33,6 +33,7 @@ export function EditorShell() {
   const exportAreaRef = useRef<HTMLDivElement>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportFormat, setExportFormat] = useState<"svg" | "png" | "pdf">("svg");
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
 
@@ -49,7 +50,7 @@ export function EditorShell() {
   const enterProcess = useSipocStore((state) => state.enterProcess);
   const navigateToLevel = useSipocStore((state) => state.navigateToLevel);
   const replaceRoot = useSipocStore((state) => state.replaceRoot);
-  const reset = useSipocStore((state) => state.reset);
+  const resetDiagram = useSipocStore((state) => state.reset);
   const getCurrent = useSipocStore((state) => state.getCurrent);
 
   const current = getCurrent();
@@ -164,7 +165,18 @@ export function EditorShell() {
 
   return (
     <div className="flex h-[calc(100dvh-2rem)] min-h-0 gap-4 overflow-hidden md:h-[calc(100dvh-3rem)]">
-      <DesktopSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} onOpenSettings={() => setSettingsOpen(true)} />
+      <DesktopSidebar
+        collapsed={sidebarCollapsed}
+        onToggle={toggleSidebar}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onDownloadXml={downloadXml}
+        onOpenXmlPicker={() => fileInputRef.current?.click()}
+        onReset={resetDiagram}
+        onExport={() => handleExport(exportFormat)}
+        onExportFormatChange={setExportFormat}
+        exportFormat={exportFormat}
+        isExporting={isExporting}
+      />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-hidden">
         <header className="shrink-0 rounded-lg border bg-card p-4">
@@ -174,57 +186,33 @@ export function EditorShell() {
                 mobileOpen={mobileMenuOpen}
                 onMobileOpenChange={setMobileMenuOpen}
                 onOpenSettings={() => setSettingsOpen(true)}
-              />
-              <div>
-                <h1 className="text-lg font-semibold">Editor SIPOC</h1>
-                <p className="text-sm text-muted-foreground">Minimalista, basado en XML y con anidamiento.</p>
-              </div>
-            </div>
-
-            <div className="w-full overflow-x-auto md:w-auto">
-              <div className="flex w-max items-center gap-2 rounded-md border bg-muted/20 p-1">
-                <Button variant="outline" size="sm" onClick={downloadXml}>
-                  <Download className="mr-2 h-4 w-4" /> Descargar XML
-                </Button>
-
-                <Button variant="outline" size="sm" onClick={() => handleExport("svg")} disabled={isExporting}>
-                  <VectorSquare className="mr-2 h-4 w-4" /> Exportar SVG
-                </Button>
-
-                <Button variant="outline" size="sm" onClick={() => handleExport("png")} disabled={isExporting}>
-                  <ImageDown className="mr-2 h-4 w-4" /> Exportar PNG
-                </Button>
-
-                <Button variant="outline" size="sm" onClick={() => handleExport("pdf")} disabled={isExporting}>
-                  <FileType2 className="mr-2 h-4 w-4" /> Exportar PDF
-                </Button>
-
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                  <FileUp className="mr-2 h-4 w-4" /> Cargar XML
-                </Button>
-
-                <Button variant="ghost" size="sm" onClick={reset}>
-                  <RotateCcw className="mr-2 h-4 w-4" /> Reiniciar
-                </Button>
-              </div>
-
-              <input
-                className="hidden"
-                ref={fileInputRef}
-                type="file"
-                accept=".xml,application/xml,text/xml"
-                onChange={async (event) => {
-                  const input = event.currentTarget;
-                  const file = input.files?.[0];
-                  if (!file) {
-                    return;
-                  }
-                  await handleLoadXml(file);
-                  input.value = "";
-                }}
+                onDownloadXml={downloadXml}
+                onOpenXmlPicker={() => fileInputRef.current?.click()}
+                onReset={resetDiagram}
+                onExport={() => handleExport(exportFormat)}
+                onExportFormatChange={setExportFormat}
+                exportFormat={exportFormat}
+                isExporting={isExporting}
               />
             </div>
+
           </div>
+
+          <input
+            className="hidden"
+            ref={fileInputRef}
+            type="file"
+            accept=".xml,application/xml,text/xml"
+            onChange={async (event) => {
+              const input = event.currentTarget;
+              const file = input.files?.[0];
+              if (!file) {
+                return;
+              }
+              await handleLoadXml(file);
+              input.value = "";
+            }}
+          />
 
           <div className="mt-4 space-y-2">
             <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Titulo del diagrama actual</label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Menu, PanelLeftClose, PanelLeftOpen, Settings2, Workflow } from "lucide-react";
+import { ChevronRight, Download, FileType2, FileUp, ImageDown, Menu, PanelLeftClose, PanelLeftOpen, RotateCcw, Settings2, VectorSquare, Workflow } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,20 +10,37 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useSipocStore } from "@/store/sipoc-store";
 import type { SIPOCDiagram } from "@/types/sipoc";
+
+type ExportFormat = "svg" | "png" | "pdf";
 
 interface DesktopSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
   onOpenSettings: () => void;
+  onDownloadXml: () => void;
+  onOpenXmlPicker: () => void;
+  onReset: () => void;
+  onExport: () => void;
+  onExportFormatChange: (format: ExportFormat) => void;
+  exportFormat: ExportFormat;
+  isExporting: boolean;
 }
 
 interface MobileSidebarProps {
   mobileOpen: boolean;
   onMobileOpenChange: (open: boolean) => void;
   onOpenSettings: () => void;
+  onDownloadXml: () => void;
+  onOpenXmlPicker: () => void;
+  onReset: () => void;
+  onExport: () => void;
+  onExportFormatChange: (format: ExportFormat) => void;
+  exportFormat: ExportFormat;
+  isExporting: boolean;
 }
 
 interface SidebarTreeProps {
@@ -122,7 +139,26 @@ function SidebarTree({ collapsed, onNavigate }: SidebarTreeProps) {
   );
 }
 
-export function DesktopSidebar({ collapsed, onToggle, onOpenSettings }: DesktopSidebarProps) {
+export function DesktopSidebar({
+  collapsed,
+  onToggle,
+  onOpenSettings,
+  onDownloadXml,
+  onOpenXmlPicker,
+  onReset,
+  onExport,
+  onExportFormatChange,
+  exportFormat,
+  isExporting,
+}: DesktopSidebarProps) {
+  const exportMeta: Record<ExportFormat, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+    svg: { label: "SVG", icon: VectorSquare },
+    png: { label: "PNG", icon: ImageDown },
+    pdf: { label: "PDF", icon: FileType2 },
+  };
+
+  const ExportIcon = exportMeta[exportFormat].icon;
+
   return (
     <aside
       className={cn(
@@ -141,24 +177,85 @@ export function DesktopSidebar({ collapsed, onToggle, onOpenSettings }: DesktopS
         <SidebarTree collapsed={collapsed} />
       </div>
 
-      <div className="mt-3 border-t pt-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("w-full", collapsed ? "justify-center px-0" : "justify-start")}
-          onClick={onOpenSettings}
-          aria-label="Abrir configuraciones"
-          title={collapsed ? "Configuraciones" : undefined}
-        >
-          <Settings2 className={cn("size-4", collapsed ? "mr-0" : "mr-2")} />
-          {collapsed ? null : <span>Configuraciones</span>}
-        </Button>
+      <div className="mt-3 space-y-2 border-t pt-3">
+        {collapsed ? (
+          <>
+            <Button variant="outline" size="icon-sm" className="w-full border-sky-300 text-sky-700 hover:bg-sky-50" onClick={onDownloadXml} aria-label="Descargar XML" title="Descargar XML">
+              <Download className="size-4" />
+            </Button>
+            <Button variant="outline" size="icon-sm" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50" onClick={onOpenXmlPicker} aria-label="Cargar XML" title="Cargar XML">
+              <FileUp className="size-4" />
+            </Button>
+            <Button variant="outline" size="icon-sm" className="w-full border-rose-300 text-rose-700 hover:bg-rose-50" onClick={onReset} aria-label="Reiniciar diagrama" title="Reiniciar diagrama">
+              <RotateCcw className="size-4" />
+            </Button>
+            <Button variant="outline" size="icon-sm" className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={onExport} disabled={isExporting} aria-label={`Exportar ${exportMeta[exportFormat].label}`} title={`Exportar ${exportMeta[exportFormat].label}`}>
+              <ExportIcon className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              className="w-full"
+              onClick={onOpenSettings}
+              aria-label="Abrir configuraciones"
+              title="Configuraciones"
+            >
+              <Settings2 className="size-4" />
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="outline" size="sm" className="w-full justify-start border-sky-300 text-sky-700 hover:bg-sky-50" onClick={onDownloadXml}>
+              <Download className="mr-2 size-4" /> Descargar XML
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start border-amber-300 text-amber-700 hover:bg-amber-50" onClick={onOpenXmlPicker}>
+              <FileUp className="mr-2 size-4" /> Cargar XML
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start border-rose-300 text-rose-700 hover:bg-rose-50" onClick={onReset}>
+              <RotateCcw className="mr-2 size-4" /> Reiniciar
+            </Button>
+            <div className="space-y-1 rounded-md border border-border/80 p-2">
+              <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Exportar</p>
+              <Select value={exportFormat} onValueChange={(value) => onExportFormatChange(value as ExportFormat)}>
+                <SelectTrigger size="sm" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="svg">SVG</SelectItem>
+                  <SelectItem value="png">PNG</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="w-full justify-start border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={onExport} disabled={isExporting}>
+                <ExportIcon className="mr-2 size-4" /> {isExporting ? "Exportando..." : `Exportar ${exportMeta[exportFormat].label}`}
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("w-full", "justify-start")}
+              onClick={onOpenSettings}
+              aria-label="Abrir configuraciones"
+            >
+              <Settings2 className="mr-2 size-4" />
+              <span>Configuraciones</span>
+            </Button>
+          </>
+        )}
       </div>
     </aside>
   );
 }
 
-export function MobileSidebar({ mobileOpen, onMobileOpenChange, onOpenSettings }: MobileSidebarProps) {
+export function MobileSidebar({ mobileOpen, onMobileOpenChange, onOpenSettings, onDownloadXml, onOpenXmlPicker, onReset, onExport, onExportFormatChange, exportFormat, isExporting }: MobileSidebarProps) {
+  const exportMeta: Record<ExportFormat, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+    svg: { label: "SVG", icon: VectorSquare },
+    png: { label: "PNG", icon: ImageDown },
+    pdf: { label: "PDF", icon: FileType2 },
+  };
+
+  const ExportIcon = exportMeta[exportFormat].icon;
+
   return (
     <>
       <Button
@@ -182,7 +279,32 @@ export function MobileSidebar({ mobileOpen, onMobileOpenChange, onOpenSettings }
               <SidebarTree collapsed={false} onNavigate={() => onMobileOpenChange(false)} />
             </div>
 
-            <div className="border-t pt-3">
+            <div className="space-y-2 border-t pt-3">
+              <Button variant="outline" size="sm" className="w-full justify-start border-sky-300 text-sky-700 hover:bg-sky-50" onClick={onDownloadXml}>
+                <Download className="mr-2 size-4" /> Descargar XML
+              </Button>
+              <Button variant="outline" size="sm" className="w-full justify-start border-amber-300 text-amber-700 hover:bg-amber-50" onClick={onOpenXmlPicker}>
+                <FileUp className="mr-2 size-4" /> Cargar XML
+              </Button>
+              <Button variant="outline" size="sm" className="w-full justify-start border-rose-300 text-rose-700 hover:bg-rose-50" onClick={onReset}>
+                <RotateCcw className="mr-2 size-4" /> Reiniciar
+              </Button>
+              <div className="space-y-1 rounded-md border border-border/80 p-2">
+                <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Exportar</p>
+                <Select value={exportFormat} onValueChange={(value) => onExportFormatChange(value as ExportFormat)}>
+                  <SelectTrigger size="sm" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="svg">SVG</SelectItem>
+                    <SelectItem value="png">PNG</SelectItem>
+                    <SelectItem value="pdf">PDF</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" className="w-full justify-start border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={onExport} disabled={isExporting}>
+                  <ExportIcon className="mr-2 size-4" /> {isExporting ? "Exportando..." : `Exportar ${exportMeta[exportFormat].label}`}
+                </Button>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
