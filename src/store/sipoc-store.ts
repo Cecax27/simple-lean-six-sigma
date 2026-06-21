@@ -15,6 +15,8 @@ import type { SIPOCDiagram, SIPOCSection, SIPOCState } from "@/types/sipoc";
 
 interface SIPOCStore extends SIPOCState {
   setTitle: (title: string) => void;
+  setProcessStart: (value: string) => void;
+  setProcessEnd: (value: string) => void;
   addItem: (section: SIPOCSection, label: string) => void;
   removeItem: (section: SIPOCSection, itemId: string) => void;
   addProcess: (label: string) => void;
@@ -37,6 +39,22 @@ export const useSipocStore = create<SIPOCStore>((set, get) => ({
       root: updateDiagramAtPath(state.root, state.path, (diagram) => ({
         ...diagram,
         title,
+      })),
+    }));
+  },
+  setProcessStart: (value) => {
+    set((state) => ({
+      root: updateDiagramAtPath(state.root, state.path, (diagram) => ({
+        ...diagram,
+        processStart: value,
+      })),
+    }));
+  },
+  setProcessEnd: (value) => {
+    set((state) => ({
+      root: updateDiagramAtPath(state.root, state.path, (diagram) => ({
+        ...diagram,
+        processEnd: value,
       })),
     }));
   },

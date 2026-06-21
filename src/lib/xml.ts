@@ -9,6 +9,11 @@ const itemSchema = z.object({
   description: z.string().optional(),
 });
 
+const sectionNodeSchema = z.union([
+  z.object({ item: z.union([itemSchema, z.array(itemSchema)]).optional() }),
+  z.string(),
+]);
+
 const processSchema: z.ZodType<unknown> = z.lazy(() =>
   z.object({
     "@_id": z.string(),
@@ -18,19 +23,40 @@ const processSchema: z.ZodType<unknown> = z.lazy(() =>
   }),
 );
 
+const processListNodeSchema = z.union([
+  z.object({ process: z.union([processSchema, z.array(processSchema)]).optional() }),
+  z.string(),
+]);
+
 const diagramSchema: z.ZodType<unknown> = z.lazy(() =>
   z.object({
     "@_id": z.string().optional(),
     title: z.string(),
-    suppliers: z.object({ item: z.union([itemSchema, z.array(itemSchema)]).optional() }).optional(),
-    inputs: z.object({ item: z.union([itemSchema, z.array(itemSchema)]).optional() }).optional(),
-    processes: z
-      .object({ process: z.union([processSchema, z.array(processSchema)]).optional() })
-      .optional(),
-    outputs: z.object({ item: z.union([itemSchema, z.array(itemSchema)]).optional() }).optional(),
-    customers: z.object({ item: z.union([itemSchema, z.array(itemSchema)]).optional() }).optional(),
+    processStart: z.string().optional(),
+    processEnd: z.string().optional(),
+    suppliers: sectionNodeSchema.optional(),
+    inputs: sectionNodeSchema.optional(),
+    processes: processListNodeSchema.optional(),
+    outputs: sectionNodeSchema.optional(),
+    customers: sectionNodeSchema.optional(),
   }),
 );
+
+function readItemsSection(section: unknown): unknown {
+  if (!section || typeof section === "string") {
+    return undefined;
+  }
+
+  return (section as { item?: unknown }).item;
+}
+
+function readProcessesSection(section: unknown): unknown {
+  if (!section || typeof section === "string") {
+    return undefined;
+  }
+
+  return (section as { process?: unknown }).process;
+}
 
 function asArray<T>(value: T | T[] | undefined): T[] {
   if (!value) {
@@ -65,21 +91,25 @@ function mapDiagram(raw: Record<string, unknown>): SIPOCDiagram {
   const parsed = diagramSchema.parse(raw) as {
     "@_id"?: string;
     title: string;
-    suppliers?: { item?: unknown };
-    inputs?: { item?: unknown };
-    processes?: { process?: unknown };
-    outputs?: { item?: unknown };
-    customers?: { item?: unknown };
+    processStart?: string;
+    processEnd?: string;
+    suppliers?: unknown;
+    inputs?: unknown;
+    processes?: unknown;
+    outputs?: unknown;
+    customers?: unknown;
   };
 
   return {
     id: parsed["@_id"] ?? crypto.randomUUID(),
     title: parsed.title,
-    suppliers: mapItems(parsed.suppliers?.item),
-    inputs: mapItems(parsed.inputs?.item),
-    processes: asArray(parsed.processes?.process).map((entry) => mapProcess(entry as never)),
-    outputs: mapItems(parsed.outputs?.item),
-    customers: mapItems(parsed.customers?.item),
+    processStart: parsed.processStart ?? "",
+    processEnd: parsed.processEnd ?? "",
+    suppliers: mapItems(readItemsSection(parsed.suppliers)),
+    inputs: mapItems(readItemsSection(parsed.inputs)),
+    processes: asArray(readProcessesSection(parsed.processes)).map((entry) => mapProcess(entry as never)),
+    outputs: mapItems(readItemsSection(parsed.outputs)),
+    customers: mapItems(readItemsSection(parsed.customers)),
   };
 }
 
@@ -116,6 +146,8 @@ function diagramNode(diagram: SIPOCDiagram): Record<string, unknown> {
   return {
     "@_id": diagram.id,
     title: diagram.title,
+    ...(diagram.processStart ? { processStart: diagram.processStart } : {}),
+    ...(diagram.processEnd ? { processEnd: diagram.processEnd } : {}),
     suppliers: itemNode(diagram.suppliers),
     inputs: itemNode(diagram.inputs),
     processes: processNode(diagram.processes),

@@ -16,6 +16,8 @@ export interface SIPOCProcess {
 export interface SIPOCDiagram {
   id: string;
   title: string;
+  processStart?: string;
+  processEnd?: string;
   suppliers: SIPOCItem[];
   inputs: SIPOCItem[];
   processes: SIPOCProcess[];

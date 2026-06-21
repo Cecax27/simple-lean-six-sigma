@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePreferencesStore } from "@/store/preferences-store";
 import type { ThemePreference } from "@/types/preferences";
 
@@ -40,5 +41,5 @@ export function Providers({ children }: { children: React.ReactNode }) {
     };
   }, [theme]);
 
-  return <>{children}</>;
+  return <TooltipProvider>{children}</TooltipProvider>;
 }

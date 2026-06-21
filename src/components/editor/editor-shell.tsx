@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { BreadcrumbNav } from "@/components/editor/breadcrumb-nav";
@@ -11,6 +11,7 @@ import { SettingsPanel } from "@/components/editor/settings-panel";
 import { SectionCard } from "@/components/editor/section-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { exportAsPdf, exportAsPng, exportAsSvg } from "@/lib/export/client-export";
@@ -43,6 +44,9 @@ export function EditorShell() {
   const root = useSipocStore((state) => state.root);
   const path = useSipocStore((state) => state.path);
   const setTitle = useSipocStore((state) => state.setTitle);
+    const setProcessStart = useSipocStore((state) => state.setProcessStart);
+    const setProcessEnd = useSipocStore((state) => state.setProcessEnd);
+    const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);
   const addItem = useSipocStore((state) => state.addItem);
   const removeItem = useSipocStore((state) => state.removeItem);
   const addProcess = useSipocStore((state) => state.addProcess);
@@ -163,8 +167,28 @@ export function EditorShell() {
         ? { title: "Operacion completada", icon: CheckCircle2, variant: "default" as const }
         : { title: "Informacion", icon: Info, variant: "default" as const };
 
+  const feedbackFloatingClass =
+    feedback?.tone === "error"
+      ? "border-rose-500/80 bg-rose-50/95 text-rose-900 ring-1 ring-rose-400/45 dark:border-rose-500/70 dark:bg-rose-950/70 dark:text-rose-100 dark:ring-rose-500/45"
+      : feedback?.tone === "success"
+        ? "border-emerald-500/80 bg-emerald-50/95 text-emerald-900 ring-1 ring-emerald-400/45 dark:border-emerald-500/70 dark:bg-emerald-950/70 dark:text-emerald-100 dark:ring-emerald-500/45"
+        : "border-sky-500/80 bg-sky-50/95 text-sky-900 ring-1 ring-sky-400/45 dark:border-sky-500/70 dark:bg-sky-950/70 dark:text-sky-100 dark:ring-sky-500/45";
+
   return (
     <div className="flex h-[calc(100dvh-2rem)] min-h-0 gap-4 overflow-hidden md:h-[calc(100dvh-3rem)]">
+      {feedback && feedbackMeta ? (
+        <div className="pointer-events-none fixed inset-x-0 top-3 z-50 px-3 md:top-4 md:px-6">
+          <Alert
+            className={`pointer-events-auto mx-auto w-full max-w-2xl border-2 shadow-xl backdrop-blur ${feedbackFloatingClass}`}
+            variant={feedbackMeta.variant}
+          >
+            <feedbackMeta.icon />
+            <AlertTitle>{feedbackMeta.title}</AlertTitle>
+            <AlertDescription>{feedback.message}</AlertDescription>
+          </Alert>
+        </div>
+      ) : null}
+
       <DesktopSidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
@@ -180,8 +204,9 @@ export function EditorShell() {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-hidden">
         <header className="shrink-0 rounded-lg border bg-card p-4">
+          {/* Fila superior: controles de navegación + botón de colapso */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-start gap-2">
+            <div className="flex items-center gap-2">
               <MobileSidebar
                 mobileOpen={mobileMenuOpen}
                 onMobileOpenChange={setMobileMenuOpen}
@@ -194,8 +219,22 @@ export function EditorShell() {
                 exportFormat={exportFormat}
                 isExporting={isExporting}
               />
+              <div className="flex flex-wrap items-center gap-2">
+                <BreadcrumbNav root={root} path={path} onNavigate={navigateToLevel} />
+                <span className="text-xs text-muted-foreground">
+                  Nivel: {path.length + 1}/{MAX_NESTING_DEPTH + 1}
+                </span>
+              </div>
             </div>
-
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setHeaderCollapsed((prev) => !prev)}
+              aria-label={headerCollapsed ? "Expandir encabezado" : "Colapsar encabezado"}
+              title={headerCollapsed ? "Expandir encabezado" : "Colapsar encabezado"}
+            >
+              {headerCollapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+            </Button>
           </div>
 
           <input
@@ -214,25 +253,78 @@ export function EditorShell() {
             }}
           />
 
-          <div className="mt-4 space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Titulo del diagrama actual</label>
-            <Input value={current.title} onChange={(event) => setTitle(event.target.value)} />
-          </div>
+          {/* Campos colapsables */}
+          <div className={headerCollapsed ? "hidden" : undefined}>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {/* Nombre del proceso */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Nombre del proceso
+                  </label>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <span className="inline-flex cursor-default">
+                        <Info className="size-3 text-muted-foreground/60" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>El proceso central que describe este diagrama SIPOC.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Input value={current.title} onChange={(event) => setTitle(event.target.value)} />
+              </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-            <BreadcrumbNav root={root} path={path} onNavigate={navigateToLevel} />
-            <span className="text-xs text-muted-foreground">
-              Nivel actual: {path.length + 1} de {MAX_NESTING_DEPTH + 1}
-            </span>
-          </div>
+              {/* Inicio del proceso */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Inicio del proceso
+                  </label>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <span className="inline-flex cursor-default">
+                        <Info className="size-3 text-muted-foreground/60" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>El evento o actividad que da comienzo al proceso.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Input
+                  value={current.processStart ?? ""}
+                  placeholder="Ej. Solicitud de cliente recibida"
+                  onChange={(event) => setProcessStart(event.target.value)}
+                />
+              </div>
 
-          {feedback && feedbackMeta ? (
-            <Alert className="mt-3" variant={feedbackMeta.variant}>
-              <feedbackMeta.icon />
-              <AlertTitle>{feedbackMeta.title}</AlertTitle>
-              <AlertDescription>{feedback.message}</AlertDescription>
-            </Alert>
-          ) : null}
+              {/* Fin del proceso */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Fin del proceso
+                  </label>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <span className="inline-flex cursor-default">
+                        <Info className="size-3 text-muted-foreground/60" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>El evento o entregable que marca el cierre del proceso.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Input
+                  value={current.processEnd ?? ""}
+                  placeholder="Ej. Producto entregado y confirmado"
+                  onChange={(event) => setProcessEnd(event.target.value)}
+                />
+              </div>
+            </div>
+          </div>
         </header>
 
         <main className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain rounded-lg border bg-card p-4 lg:grid-cols-5">

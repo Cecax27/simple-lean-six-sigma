@@ -10,6 +10,8 @@ export function createDiagram(title: string): SIPOCDiagram {
   return {
     id: uid("sipoc"),
     title,
+    processStart: "",
+    processEnd: "",
     suppliers: [],
     inputs: [],
     processes: [],
