@@ -1,4 +1,4 @@
-name: ✨ New Feature Request
+name: ✨ Feature request
 description: Suggest an idea or improvement
 title: "[FEATURE]: "
 labels: ["enhancement"]
@@ -15,10 +15,10 @@ body:
     attributes:
       label: Brief description
       description: What feature would you like to add?
-      placeholder: Example: "Add dark mode"
-  
+      placeholder: "e.g., Add dark mode"
+
   - type: textarea
-    id: reason
+    id: motivation
     attributes:
       label: Motivation
       description: Why would this improvement be useful?
@@ -29,4 +29,4 @@ body:
     attributes:
       label: Additional details
       description: If you have specific ideas, describe them here.
-      placeholder: "It could be activated from the Settings menu..."  
+      placeholder: "It could be toggled from the Settings menu..."
