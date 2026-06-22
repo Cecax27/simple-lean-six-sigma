@@ -1,0 +1,51 @@
+name: 🐞 Bug report
+description: Use this template to report a system error
+title: "[BUG]: "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue 🙏
+        Please complete the following fields to help us reproduce the error.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Issue summary
+      description: Brief description of the bug
+      placeholder: "e.g., The application crashes when saving a file"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the steps so we can see the error
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_result
+    attributes:
+      label: Expected result
+      description: What should happen?
+      placeholder: "e.g., The file should be saved successfully"
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Attach screenshots or error messages
+      placeholder: Paste your logs or images here
+    validations:
+      required: false
