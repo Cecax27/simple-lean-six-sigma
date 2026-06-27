@@ -1,4 +1,4 @@
-import type { SIPOCDiagram, SIPOCProcess } from "@/types/sipoc";
+import type { SIPOCDiagram, SIPOCProcess } from "@/tools/sipoc/types";
 
 export const MAX_NESTING_DEPTH = 3;
 

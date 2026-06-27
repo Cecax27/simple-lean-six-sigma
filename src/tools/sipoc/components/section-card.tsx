@@ -6,7 +6,7 @@ import { Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { SIPOCItem } from "@/types/sipoc";
+import type { SIPOCItem } from "@/tools/sipoc/types";
 
 interface SectionCardProps {
   title: string;

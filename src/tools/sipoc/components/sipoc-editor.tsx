@@ -1,26 +1,30 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Download, FileUp, Info, RotateCcw, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { BreadcrumbNav } from "@/components/editor/breadcrumb-nav";
-import { DesktopSidebar, MobileSidebar } from "@/components/editor/editor-sidebar";
-import { ExportDiagram } from "@/components/editor/export-diagram";
-import { ProcessList } from "@/components/editor/process-list";
-import { SettingsPanel } from "@/components/editor/settings-panel";
-import { SectionCard } from "@/components/editor/section-card";
+import { BreadcrumbNav } from "@/tools/sipoc/components/breadcrumb-nav";
+import { ExportDiagram } from "@/tools/sipoc/components/export-diagram";
+import { ProcessList } from "@/tools/sipoc/components/process-list";
+import { SectionCard } from "@/tools/sipoc/components/section-card";
+import { SipocTreePanel } from "@/tools/sipoc/components/sipoc-tree-panel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { exportAsPdf, exportAsPng, exportAsSvg } from "@/lib/export/client-export";
-import { MAX_NESTING_DEPTH } from "@/lib/sipoc-tree";
-import { parseFromXml, serializeToXml } from "@/lib/xml";
-import { usePreferencesStore } from "@/store/preferences-store";
-import { useSipocStore } from "@/store/sipoc-store";
-
-const STORAGE_KEY = "simple-sipoc-autosave-v1";
+import { MAX_NESTING_DEPTH } from "@/tools/sipoc/tree";
+import { serializeToXml, parseFromXml } from "@/tools/sipoc/xml";
+import { useSipocStore } from "@/tools/sipoc/store";
+import { useDocsStore } from "@/store/docs-store";
+import type { ExportFormat } from "@/tools/sipoc/types";
 
 type FeedbackTone = "info" | "success" | "error";
 
@@ -29,24 +33,25 @@ interface FeedbackMessage {
   message: string;
 }
 
-export function EditorShell() {
+interface SipocEditorProps {
+  docId: string;
+}
+
+export function SipocEditor({ docId }: SipocEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const exportAreaRef = useRef<HTMLDivElement>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [exportFormat, setExportFormat] = useState<"svg" | "png" | "pdf">("svg");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
-
-  const sidebarCollapsed = usePreferencesStore((state) => state.sidebarCollapsed);
-  const toggleSidebar = usePreferencesStore((state) => state.toggleSidebar);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("svg");
+  const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);
+  const [treePanelOpen, setTreePanelOpen] = useState<boolean>(false);
+  const loadedRef = useRef(false);
 
   const root = useSipocStore((state) => state.root);
   const path = useSipocStore((state) => state.path);
   const setTitle = useSipocStore((state) => state.setTitle);
-    const setProcessStart = useSipocStore((state) => state.setProcessStart);
-    const setProcessEnd = useSipocStore((state) => state.setProcessEnd);
-    const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);
+  const setProcessStart = useSipocStore((state) => state.setProcessStart);
+  const setProcessEnd = useSipocStore((state) => state.setProcessEnd);
   const addItem = useSipocStore((state) => state.addItem);
   const removeItem = useSipocStore((state) => state.removeItem);
   const addProcess = useSipocStore((state) => state.addProcess);
@@ -57,50 +62,51 @@ export function EditorShell() {
   const resetDiagram = useSipocStore((state) => state.reset);
   const getCurrent = useSipocStore((state) => state.getCurrent);
 
+  const docTitle = useDocsStore((state) => state.getDoc(docId))?.title ?? "Sin titulo";
+  const getDocData = useDocsStore((state) => state.getDocData);
+  const setDocData = useDocsStore((state) => state.setDocData);
+  const renameDoc = useDocsStore((state) => state.renameDoc);
+
   const current = getCurrent();
   const pathLabels = [root.title];
   let pointer = root;
   for (const processId of path) {
     const process = pointer.processes.find((entry) => entry.id === processId);
-    if (!process) {
-      break;
-    }
+    if (!process) break;
     pathLabels.push(process.label);
     pointer = process.child ?? pointer;
   }
 
+  // Load doc data on mount
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return;
+    if (loadedRef.current) return;
+    const data = getDocData(docId);
+    if (data) {
+      replaceRoot(data as never);
     }
+    loadedRef.current = true;
+  }, [docId, getDocData, replaceRoot]);
 
-    try {
-      const restored = parseFromXml(raw);
-      replaceRoot(restored);
-    } catch {}
-  }, [replaceRoot]);
-
+  // Sync changes back to docs-store
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, serializeToXml(root));
-    } catch {
-      // No interrumpe el flujo de edicion si localStorage falla.
-    }
+    if (!loadedRef.current) return;
+    setDocData(docId, root);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [root]);
 
+  // Sync doc title
   useEffect(() => {
-    if (!feedback) {
-      return;
+    if (!loadedRef.current) return;
+    if (root.title && root.title !== docTitle) {
+      renameDoc(docId, root.title);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [root.title]);
 
-    const timeoutId = window.setTimeout(() => {
-      setFeedback(null);
-    }, 3600);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
+  useEffect(() => {
+    if (!feedback) return;
+    const timeoutId = window.setTimeout(() => setFeedback(null), 3600);
+    return () => window.clearTimeout(timeoutId);
   }, [feedback]);
 
   function pushFeedback(tone: FeedbackTone, message: string): void {
@@ -113,7 +119,7 @@ export function EditorShell() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "diagrama-sipoc.xml";
+    anchor.download = `${docTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "diagrama-sipoc"}.xml`;
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
@@ -123,7 +129,6 @@ export function EditorShell() {
 
   async function handleLoadXml(file: File): Promise<void> {
     const text = await file.text();
-
     try {
       const diagram = parseFromXml(text);
       replaceRoot(diagram);
@@ -134,12 +139,11 @@ export function EditorShell() {
     }
   }
 
-  async function handleExport(format: "svg" | "png" | "pdf"): Promise<void> {
+  async function handleExport(format: ExportFormat): Promise<void> {
     if (!exportAreaRef.current) {
       pushFeedback("error", "No se encontro el area para exportar.");
       return;
     }
-
     setIsExporting(true);
     try {
       if (format === "svg") {
@@ -174,8 +178,15 @@ export function EditorShell() {
         ? "border-emerald-500/80 bg-emerald-50/95 text-emerald-900 ring-1 ring-emerald-400/45 dark:border-emerald-500/70 dark:bg-emerald-950/70 dark:text-emerald-100 dark:ring-emerald-500/45"
         : "border-sky-500/80 bg-sky-50/95 text-sky-900 ring-1 ring-sky-400/45 dark:border-sky-500/70 dark:bg-sky-950/70 dark:text-sky-100 dark:ring-sky-500/45";
 
+  const exportMeta: Record<ExportFormat, { label: string }> = {
+    svg: { label: "SVG" },
+    png: { label: "PNG" },
+    pdf: { label: "PDF" },
+  };
+
   return (
-    <div className="flex h-[calc(100dvh-2rem)] min-h-0 gap-4 overflow-hidden md:h-[calc(100dvh-3rem)]">
+    <div className="flex h-full min-h-0 gap-4 overflow-hidden">
+      {/* Feedback toast */}
       {feedback && feedbackMeta ? (
         <div className="pointer-events-none fixed inset-x-0 top-3 z-50 px-3 md:top-4 md:px-6">
           <Alert
@@ -189,52 +200,59 @@ export function EditorShell() {
         </div>
       ) : null}
 
-      <DesktopSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={toggleSidebar}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onDownloadXml={downloadXml}
-        onOpenXmlPicker={() => fileInputRef.current?.click()}
-        onReset={resetDiagram}
-        onExport={() => handleExport(exportFormat)}
-        onExportFormatChange={setExportFormat}
-        exportFormat={exportFormat}
-        isExporting={isExporting}
-      />
+      {/* Tree panel */}
+      {treePanelOpen && (
+        <aside className="hidden h-full w-64 shrink-0 overflow-y-auto rounded-xl border bg-card p-3 shadow-sm md:block">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Arbol SIPOC
+            </span>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => setTreePanelOpen(false)}
+              aria-label="Cerrar panel de arbol"
+            >
+              <PanelRightClose className="size-4" />
+            </Button>
+          </div>
+          <SipocTreePanel />
+        </aside>
+      )}
 
+      {/* Main content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-hidden">
+        {/* Header */}
         <header className="shrink-0 rounded-lg border bg-card p-4">
-          {/* Fila superior: controles de navegación + botón de colapso */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <MobileSidebar
-                mobileOpen={mobileMenuOpen}
-                onMobileOpenChange={setMobileMenuOpen}
-                onOpenSettings={() => setSettingsOpen(true)}
-                onDownloadXml={downloadXml}
-                onOpenXmlPicker={() => fileInputRef.current?.click()}
-                onReset={resetDiagram}
-                onExport={() => handleExport(exportFormat)}
-                onExportFormatChange={setExportFormat}
-                exportFormat={exportFormat}
-                isExporting={isExporting}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <BreadcrumbNav root={root} path={path} onNavigate={navigateToLevel} />
-                <span className="text-xs text-muted-foreground">
-                  Nivel: {path.length + 1}/{MAX_NESTING_DEPTH + 1}
-                </span>
-              </div>
+              <BreadcrumbNav root={root} path={path} onNavigate={navigateToLevel} />
+              <span className="text-xs text-muted-foreground">
+                Nivel: {path.length + 1}/{MAX_NESTING_DEPTH + 1}
+              </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setHeaderCollapsed((prev) => !prev)}
-              aria-label={headerCollapsed ? "Expandir encabezado" : "Colapsar encabezado"}
-              title={headerCollapsed ? "Expandir encabezado" : "Colapsar encabezado"}
-            >
-              {headerCollapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
-            </Button>
+            <div className="flex items-center gap-1">
+              {!treePanelOpen && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setTreePanelOpen(true)}
+                  aria-label="Abrir arbol SIPOC"
+                  title="Arbol SIPOC"
+                >
+                  <PanelRightOpen className="size-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setHeaderCollapsed((prev) => !prev)}
+                aria-label={headerCollapsed ? "Expandir encabezado" : "Colapsar encabezado"}
+                title={headerCollapsed ? "Expandir encabezado" : "Colapsar encabezado"}
+              >
+                {headerCollapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+              </Button>
+            </div>
           </div>
 
           <input
@@ -245,18 +263,14 @@ export function EditorShell() {
             onChange={async (event) => {
               const input = event.currentTarget;
               const file = input.files?.[0];
-              if (!file) {
-                return;
-              }
+              if (!file) return;
               await handleLoadXml(file);
               input.value = "";
             }}
           />
 
-          {/* Campos colapsables */}
           <div className={headerCollapsed ? "hidden" : undefined}>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-              {/* Nombre del proceso */}
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -276,7 +290,6 @@ export function EditorShell() {
                 <Input value={current.title} onChange={(event) => setTitle(event.target.value)} />
               </div>
 
-              {/* Inicio del proceso */}
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -300,7 +313,6 @@ export function EditorShell() {
                 />
               </div>
 
-              {/* Fin del proceso */}
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
                   <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -327,6 +339,7 @@ export function EditorShell() {
           </div>
         </header>
 
+        {/* 5-column grid */}
         <main className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain rounded-lg border bg-card p-4 lg:grid-cols-5 lg:overflow-hidden">
           <SectionCard
             title="Proveedores"
@@ -334,14 +347,12 @@ export function EditorShell() {
             onAdd={(label) => addItem("suppliers", label)}
             onRemove={(id) => removeItem("suppliers", id)}
           />
-
           <SectionCard
             title="Entradas"
             items={current.inputs}
             onAdd={(label) => addItem("inputs", label)}
             onRemove={(id) => removeItem("inputs", id)}
           />
-
           <ProcessList
             processes={current.processes}
             canEnterSubprocess={path.length < MAX_NESTING_DEPTH}
@@ -349,14 +360,12 @@ export function EditorShell() {
             onRemove={removeProcess}
             onEnter={enterProcess}
           />
-
           <SectionCard
             title="Salidas"
             items={current.outputs}
             onAdd={(label) => addItem("outputs", label)}
             onRemove={(id) => removeItem("outputs", id)}
           />
-
           <SectionCard
             title="Clientes"
             items={current.customers}
@@ -365,21 +374,65 @@ export function EditorShell() {
           />
         </main>
 
+        {/* Toolbar */}
+        <footer className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border bg-card/60 p-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-start border-sky-300 text-sky-700 hover:bg-sky-50"
+            onClick={downloadXml}
+          >
+            <Download className="mr-2 size-4" /> Descargar XML
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-start border-amber-300 text-amber-700 hover:bg-amber-50"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <FileUp className="mr-2 size-4" /> Cargar XML
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-start border-rose-300 text-rose-700 hover:bg-rose-50"
+            onClick={resetDiagram}
+          >
+            <RotateCcw className="mr-2 size-4" /> Reiniciar
+          </Button>
+
+          <div className="flex items-center gap-2 rounded-md border border-border/80 px-2 py-1">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Exportar
+            </span>
+            <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as ExportFormat)}>
+              <SelectTrigger size="sm" className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="svg">SVG</SelectItem>
+                <SelectItem value="png">PNG</SelectItem>
+                <SelectItem value="pdf">PDF</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              onClick={() => handleExport(exportFormat)}
+              disabled={isExporting}
+            >
+              {isExporting ? "Exportando..." : exportMeta[exportFormat].label}
+            </Button>
+          </div>
+        </footer>
+
+        {/* Hidden export area */}
         <section className="pointer-events-none fixed left-[-10000px] top-0" aria-hidden>
           <div ref={exportAreaRef}>
             <ExportDiagram diagram={current} pathLabels={pathLabels} />
           </div>
         </section>
-
-        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Configuraciones</DialogTitle>
-              <DialogDescription>Personaliza la apariencia y comportamiento de la herramienta.</DialogDescription>
-            </DialogHeader>
-            <SettingsPanel />
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

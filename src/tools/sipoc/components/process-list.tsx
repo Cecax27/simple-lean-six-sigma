@@ -6,7 +6,7 @@ import { Check, FolderTree, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { SIPOCProcess } from "@/types/sipoc";
+import type { SIPOCProcess } from "@/tools/sipoc/types";
 
 interface ProcessListProps {
   processes: SIPOCProcess[];

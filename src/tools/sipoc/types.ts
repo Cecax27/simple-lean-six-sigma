@@ -29,3 +29,5 @@ export interface SIPOCState {
   root: SIPOCDiagram;
   path: string[];
 }
+
+export type ExportFormat = "svg" | "png" | "pdf";

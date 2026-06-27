@@ -1,7 +1,7 @@
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 
-import type { SIPOCDiagram, SIPOCItem, SIPOCProcess } from "@/types/sipoc";
+import type { SIPOCDiagram, SIPOCItem, SIPOCProcess } from "@/tools/sipoc/types";
 
 const itemSchema = z.object({
   "@_id": z.string(),

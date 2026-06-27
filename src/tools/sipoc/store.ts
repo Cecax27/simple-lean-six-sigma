@@ -10,8 +10,8 @@ import {
   getDiagramAtPath,
   uid,
   updateDiagramAtPath,
-} from "@/lib/sipoc-tree";
-import type { SIPOCDiagram, SIPOCSection, SIPOCState } from "@/types/sipoc";
+} from "@/tools/sipoc/tree";
+import type { SIPOCDiagram, SIPOCSection, SIPOCState } from "@/tools/sipoc/types";
 
 interface SIPOCStore extends SIPOCState {
   setTitle: (title: string) => void;

@@ -1,4 +1,4 @@
-import type { SIPOCDiagram } from "@/types/sipoc";
+import type { SIPOCDiagram } from "@/tools/sipoc/types";
 
 import { Button } from "@/components/ui/button";
 

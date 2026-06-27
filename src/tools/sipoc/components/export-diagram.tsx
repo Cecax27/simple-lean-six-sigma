@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { SIPOCDiagram, SIPOCItem, SIPOCProcess } from "@/types/sipoc";
+import type { SIPOCDiagram, SIPOCItem, SIPOCProcess } from "@/tools/sipoc/types";
 
 interface ExportDiagramProps {
   diagram: SIPOCDiagram;
