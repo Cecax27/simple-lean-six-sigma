@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "simple-sipoc",
-  description: "Editor SIPOC minimalista basado en XML",
+  title: "Simple Lean Six Sigma",
+  description: "Plataforma web minimalista para herramientas Lean Six Sigma",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
