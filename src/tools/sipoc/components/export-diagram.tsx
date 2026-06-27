@@ -1,7 +1,3 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
 import type { SIPOCDiagram, SIPOCItem, SIPOCProcess } from "@/tools/sipoc/types";
 
 interface ExportDiagramProps {
@@ -67,19 +63,13 @@ function ProcessColumn({ processes }: { processes: SIPOCProcess[] }) {
 
 export function ExportDiagram({ diagram, pathLabels }: ExportDiagramProps) {
   const routeText = pathLabels.join(" > ");
-  const [dateText, setDateText] = useState<string>("");
-
-  useEffect(() => {
-    const formattedDate = new Intl.DateTimeFormat("es-MX", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date());
-
-    setDateText(formattedDate);
-  }, []);
+  const dateText = new Intl.DateTimeFormat("es-MX", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date());
 
   return (
     <article className="w-[1600px] rounded-3xl border border-zinc-200 bg-white p-8 text-zinc-900 shadow-lg">

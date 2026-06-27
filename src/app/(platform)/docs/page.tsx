@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useDocsStore } from "@/store/docs-store";
-import type { DocMeta, ToolId } from "@/store/docs-store";
+import type { DocMeta } from "@/store/docs-store";
+import type { ToolId } from "@/tools/registry";
 
 export default function DocsPage() {
   const docs = useDocsStore((state) => state.docs);

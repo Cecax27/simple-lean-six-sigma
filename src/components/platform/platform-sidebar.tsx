@@ -22,6 +22,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { TOOLS } from "@/tools/registry";
 import { usePreferencesStore } from "@/store/preferences-store";
 
 export function PlatformSidebar() {
@@ -104,11 +105,15 @@ export function PlatformSidebar() {
               </p>
             </div>
             <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-              <ToolNavLink href="/sipoc" label="SIPOC" active={pathname.startsWith("/sipoc")} />
-              <ToolNavLink href="/ishikawa" label="Ishikawa" active={pathname.startsWith("/ishikawa")} disabled />
-              <ToolNavLink href="/pareto" label="Pareto" active={pathname.startsWith("/pareto")} disabled />
-              <ToolNavLink href="/cinco-porques" label="5 Porques" active={pathname.startsWith("/cinco-porques")} disabled />
-              <ToolNavLink href="/dmaic" label="DMAIC" active={pathname.startsWith("/dmaic")} disabled />
+              {TOOLS.map((tool) => (
+                <ToolNavLink
+                  key={tool.id}
+                  href={tool.hrefBase}
+                  label={tool.nameEs}
+                  active={pathname.startsWith(tool.hrefBase)}
+                  disabled={tool.status === "soon"}
+                />
+              ))}
             </div>
           </>
         )}
@@ -270,31 +275,30 @@ function MobileSidebar({
               Herramientas
             </p>
             <div className="space-y-1">
-              <Link href="/sipoc" className="block">
-                <Button
-                  variant={isActive("/sipoc") ? "secondary" : "ghost"}
-                  size="sm"
-                  className="w-full justify-start"
-                >
-                  <Wrench className="mr-2 size-4" /> SIPOC
-                </Button>
-              </Link>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground/50" disabled>
-                <Wrench className="mr-2 size-4 opacity-50" /> Ishikawa
-                <span className="ml-auto text-[10px]">Proximamente</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground/50" disabled>
-                <Wrench className="mr-2 size-4 opacity-50" /> Pareto
-                <span className="ml-auto text-[10px]">Proximamente</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground/50" disabled>
-                <Wrench className="mr-2 size-4 opacity-50" /> 5 Porques
-                <span className="ml-auto text-[10px]">Proximamente</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground/50" disabled>
-                <Wrench className="mr-2 size-4 opacity-50" /> DMAIC
-                <span className="ml-auto text-[10px]">Proximamente</span>
-              </Button>
+              {TOOLS.map((tool) =>
+                tool.status === "ready" ? (
+                  <Link key={tool.id} href={tool.hrefBase} className="block">
+                    <Button
+                      variant={isActive(tool.hrefBase) ? "secondary" : "ghost"}
+                      size="sm"
+                      className="w-full justify-start"
+                    >
+                      <Wrench className="mr-2 size-4" /> {tool.nameEs}
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    key={tool.id}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-muted-foreground/50"
+                    disabled
+                  >
+                    <Wrench className="mr-2 size-4 opacity-50" /> {tool.nameEs}
+                    <span className="ml-auto text-[10px]">Proximamente</span>
+                  </Button>
+                ),
+              )}
             </div>
           </div>
 

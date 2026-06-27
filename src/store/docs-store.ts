@@ -4,8 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import { parseFromXml } from "@/tools/sipoc/xml";
-
-export type ToolId = "sipoc" | "ishikawa" | "pareto" | "cinco-porques" | "dmaic";
+import type { ToolId } from "@/tools/registry";
 
 export interface DocMeta {
   id: string;
