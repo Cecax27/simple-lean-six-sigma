@@ -69,7 +69,7 @@ export default function SettingsPage() {
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <Link href="/" className={cn(buttonVariants({ variant: "outline" }))}>
+        <Link href="/inicio" className={cn(buttonVariants({ variant: "outline" }))}>
           Volver al inicio
         </Link>
       </div>

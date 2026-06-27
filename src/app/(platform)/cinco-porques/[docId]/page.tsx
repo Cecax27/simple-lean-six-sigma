@@ -19,7 +19,7 @@ export default function CincoPorquesPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">Proximamente disponible.</p>
-          <Link href="/">
+          <Link href="/inicio">
             <Button variant="outline" className="gap-2">
               <ArrowLeft className="size-4" /> Volver al inicio
             </Button>

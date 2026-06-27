@@ -38,10 +38,10 @@ export function PlatformSidebar() {
   const docId = params?.docId as string | undefined;
 
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/inicio" ? pathname === "/inicio" : pathname.startsWith(href);
 
   const navItems = [
-    { href: "/", label: "Inicio", icon: Home },
+    { href: "/inicio", label: "Inicio", icon: Home },
     { href: "/docs", label: "Mis documentos", icon: FileText },
     { href: "/settings", label: "Ajustes", icon: Settings2 },
   ];
@@ -216,7 +216,7 @@ function MobileSidebar({
   setSidebarCollapsed: (collapsed: boolean) => void;
 }) {
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/inicio" ? pathname === "/inicio" : pathname.startsWith(href);
 
   return (
     <>
@@ -241,9 +241,9 @@ function MobileSidebar({
         <div className="flex h-full flex-col gap-3 p-4">
           {/* Primary nav */}
           <nav className="space-y-1">
-            <Link href="/" className="block">
+            <Link href="/inicio" className="block">
               <Button
-                variant={isActive("/") ? "secondary" : "ghost"}
+                variant={isActive("/inicio") ? "secondary" : "ghost"}
                 size="sm"
                 className="w-full justify-start"
               >

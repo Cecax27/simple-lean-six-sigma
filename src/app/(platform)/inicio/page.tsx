@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { cn } from "@/lib/utils";
 import { TOOLS, getToolsByStatus } from "@/tools/registry";
 
-export default function HomePage() {
+export default function InicioPage() {
   const readyTools = getToolsByStatus("ready");
   const firstReady = readyTools[0];
 
