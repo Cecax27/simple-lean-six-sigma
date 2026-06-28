@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -43,7 +44,9 @@ export function ToolMenusZone({ collapsed }: ToolMenusZoneProps) {
           }
         />
         <DropdownMenuContent align="start" side="right" className="w-44">
-          <DropdownMenuLabel className="text-[11px]">Herramienta</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-[11px]">Herramienta</DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <FileMenu descriptor={fileDescriptor} collapsed />
           <ExportMenu collapsed />

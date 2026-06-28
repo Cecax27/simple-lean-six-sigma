@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -73,7 +74,9 @@ export function FileMenu({ descriptor, collapsed }: FileMenuProps) {
         }
       />
       <DropdownMenuContent align="start" side="right" className="w-40">
-        <DropdownMenuLabel className="text-[11px]">Archivo</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-[11px]">Archivo</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSave}>
           <Download className="mr-2 size-4" />
