@@ -41,11 +41,13 @@ export function HelpDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50">
-          <BookOpen className="size-4" /> Documentacion
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="sm" className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50">
+            <BookOpen className="size-4" /> Documentacion
+          </Button>
+        }
+      />
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
