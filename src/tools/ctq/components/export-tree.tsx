@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import type { CTQTree } from "@/tools/ctq/types";
 import type { ExportOptions } from "@/lib/export/types";
 
@@ -41,7 +41,6 @@ interface RenderedDriver {
   driverTop: number;
   driverHeight: number;
   requirements: RenderedRequirement[];
-  connectorReqs: { fromY: number; toY: number }[];
 }
 
 interface RenderedRequirement {
@@ -55,6 +54,7 @@ const ITEM_H = 36;
 const ITEM_GAP = 8;
 const COL_W = 220;
 const COL_GAP = 48; // gap between columns, room for arrows
+const BODY_PADDING = 20;
 
 function computeLayout(tree: CTQTree): {
   needs: RenderedNeed[];
@@ -64,16 +64,26 @@ function computeLayout(tree: CTQTree): {
   let y = 0;
 
   for (const need of tree.needs) {
-    const drivers = need.drivers.length > 0 ? need.drivers : [{ id: `__empty__${need.id}`, label: "", requirements: [] }] as typeof need.drivers;
+    const drivers =
+      need.drivers.length > 0
+        ? need.drivers
+        : [
+            {
+              id: `__empty__${need.id}`,
+              label: "",
+              requirements: [],
+            } as unknown as (typeof need.drivers)[number],
+          ];
 
     const renderedDrivers: RenderedDriver[] = [];
     let needDriverY = 0;
-    const firstDriverReqTops: number[] = [];
 
     for (const driver of drivers) {
-      const reqs = driver.requirements.length > 0
-        ? driver.requirements
-        : [{ id: `__empty__${driver.id}`, label: "" }] as typeof driver.requirements;
+      const driverReqs = driver.requirements as { id: string; label: string }[];
+      const reqs =
+        driverReqs.length > 0
+          ? driverReqs
+          : [{ id: `__empty__${driver.id}`, label: "" }];
 
       const renderedReqs: RenderedRequirement[] = [];
       let reqY = 0;
@@ -90,25 +100,12 @@ function computeLayout(tree: CTQTree): {
 
       const driverHeight = Math.max(ITEM_H, reqY - ITEM_GAP);
 
-      // Record connector positions from driver to each req
-      const connectorReqs: { fromY: number; toY: number }[] = [];
-      const driverCenterY = needDriverY + driverHeight / 2;
-      for (let i = 0; i < renderedReqs.length; i++) {
-        const reqCenterY = renderedReqs[i].reqTop + ITEM_H / 2;
-        connectorReqs.push({ fromY: driverCenterY, toY: reqCenterY });
-      }
-
-      if (renderedNeeds.length === 0 && renderedDrivers.length === 0 && renderedReqs.length > 0) {
-        firstDriverReqTops.push(0);
-      }
-
       renderedDrivers.push({
         driverId: driver.id,
         driverLabel: driver.label || "",
         driverTop: needDriverY,
         driverHeight,
         requirements: renderedReqs,
-        connectorReqs,
       });
 
       needDriverY += driverHeight + ITEM_GAP;
@@ -117,7 +114,6 @@ function computeLayout(tree: CTQTree): {
     const needHeight = Math.max(ITEM_H, needDriverY - ITEM_GAP);
     const needCenterY = needHeight / 2;
 
-    // Build connector positions from need to each driver
     const connectorNeeds: { fromY: number; toY: number }[] = [];
     for (const driver of renderedDrivers) {
       const driverCenterY = driver.driverTop + driver.driverHeight / 2;
@@ -142,14 +138,15 @@ function computeLayout(tree: CTQTree): {
       needLabel: "",
       needTop: 0,
       needHeight: ITEM_H,
-      drivers: [{
-        driverId: "__empty__",
-        driverLabel: "",
-        driverTop: 0,
-        driverHeight: ITEM_H,
-        requirements: [{ reqId: "__empty__", reqLabel: "", reqTop: 0, reqHeight: ITEM_H }],
-        connectorReqs: [],
-      }],
+      drivers: [
+        {
+          driverId: "__empty__",
+          driverLabel: "",
+          driverTop: 0,
+          driverHeight: ITEM_H,
+          requirements: [{ reqId: "__empty__", reqLabel: "", reqTop: 0, reqHeight: ITEM_H }],
+        },
+      ],
       connectorNeeds: [],
     });
     y = ITEM_H;
@@ -173,9 +170,10 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
   const accentBg = colors.accent;
   const textClr = colors.text;
   const bgClr = colors.background;
-  const mutedClr = adjustTextColor(accentBg) === "#18181b"
-    ? "rgba(24,24,27,0.5)"
-    : "rgba(250,250,250,0.6)";
+  const mutedClr =
+    adjustTextColor(accentBg) === "#18181b"
+      ? "rgba(24,24,27,0.5)"
+      : "rgba(250,250,250,0.6)";
 
   const showTitle = fields.includes("title");
   const showDate = fields.includes("date");
@@ -184,23 +182,25 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
 
   const layoutData = useMemo(() => computeLayout(tree), [tree]);
 
-  const bodyPadding = 20;
-  const bodyMinH = 200;
-  const bodyH = Math.max(bodyMinH, layoutData.totalHeight);
-  const headerH = showTitle ? 100 : 60;
-  const totalInnerH = headerH + bodyH + 2 * bodyPadding;
-  const svgH = totalInnerH;
+  // Tree body container dimensions (single coordinate system)
+  const treeBodyWidth = 3 * COL_W + 2 * COL_GAP;
+  const treeBodyHeight = layoutData.totalHeight;
 
-  // Column positions for SVG connectors
-  const leftColRightEdge = bodyPadding + COL_W;
-  const midColLeftEdge = bodyPadding + COL_W + COL_GAP;
-  const midColRightEdge = midColLeftEdge + COL_W;
-  const rightColLeftEdge = midColRightEdge + COL_GAP;
+  // Column x-edges within the tree body container
+  const leftColRightEdge = COL_W;
+  const midColLeftEdge = COL_W + COL_GAP;
+  const midColRightEdge = 2 * COL_W + COL_GAP;
+  const rightColLeftEdge = 2 * (COL_W + COL_GAP);
 
-  const connectorOffsetY = headerH + bodyPadding;
-
-  // header height + body padding
-  const headerH_actual = showTitle ? 100 : 60;
+  const cardBaseStyle: CSSProperties = {
+    boxSizing: "border-box",
+    display: "flex",
+    alignItems: "center",
+    padding: "8px 12px",
+    fontSize: 14,
+    color: textClr,
+    overflow: "hidden",
+  };
 
   return (
     <div
@@ -233,7 +233,15 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
             position: "relative",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 600, color: mutedClr, textTransform: "uppercase", marginBottom: 4 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: mutedClr,
+              textTransform: "uppercase",
+              marginBottom: 4,
+            }}
+          >
             ARBOL CTQ
           </div>
           {showTitle && (
@@ -273,233 +281,286 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
           )}
         </div>
 
-        {/* Body: horizontal tree with 3 columns */}
-        <div style={{ position: "relative", minHeight: bodyH }}>
-          {/* Column headers */}
-          <div style={{ display: "flex", padding: `${bodyPadding}px ${bodyPadding}px 0 ${bodyPadding}px`, gap: COL_GAP }}>
-            <div style={{ width: COL_W, flexShrink: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: textClr, marginBottom: 4 }}>Necesidades</div>
-              <div style={{ fontSize: 12, color: mutedClr, marginBottom: 8 }}>Criticas del cliente</div>
-              {!isFlat && <div style={{ borderBottom: `1px solid ${rgba(cardBg, 0.3)}`, marginBottom: 8 }} />}
+        {/* Column headers */}
+        <div
+          style={{
+            display: "flex",
+            padding: `${BODY_PADDING}px ${BODY_PADDING}px 0 ${BODY_PADDING}px`,
+            gap: COL_GAP,
+          }}
+        >
+          <div style={{ width: COL_W, flexShrink: 0 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: textClr, marginBottom: 4 }}>
+              Necesidades
             </div>
-            <div style={{ width: COL_W, flexShrink: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: textClr, marginBottom: 4 }}>Impulsores</div>
-              <div style={{ fontSize: 12, color: mutedClr, marginBottom: 8 }}>Punto de transicion</div>
-              {!isFlat && <div style={{ borderBottom: `1px solid ${rgba(cardBg, 0.3)}`, marginBottom: 8 }} />}
+            <div style={{ fontSize: 12, color: mutedClr, marginBottom: 8 }}>
+              Criticas del cliente
             </div>
-            <div style={{ width: COL_W, flexShrink: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: textClr, marginBottom: 4 }}>Requisitos</div>
-              <div style={{ fontSize: 12, color: mutedClr, marginBottom: 8 }}>Caracteristicas medibles</div>
-              {!isFlat && <div style={{ borderBottom: `1px solid ${rgba(cardBg, 0.3)}`, marginBottom: 8 }} />}
-            </div>
+            {!isFlat && (
+              <div style={{ borderBottom: `1px solid ${rgba(cardBg, 0.3)}`, marginBottom: 8 }} />
+            )}
           </div>
-
-          {/* Row-based tree body */}
-          <div style={{ position: "relative", padding: `0 ${bodyPadding}px ${bodyPadding}px ${bodyPadding}px` }}>
-            <div style={{ display: "flex", gap: COL_GAP }}>
-              {/* Column 1: Needs */}
-              <div style={{ width: COL_W, flexShrink: 0, position: "relative" }}>
-                {layoutData.needs.map((need) =>
-                  need.needLabel ? (
-                    <div
-                      key={need.needId}
-                      style={{
-                        position: "absolute",
-                        top: need.needTop,
-                        width: "100%",
-                        height: need.needHeight,
-                        backgroundColor: accentBg,
-                        borderRadius: isFlat ? 0 : 16,
-                        padding: "8px 12px",
-                        fontWeight: 600,
-                        color: textClr,
-                        border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
-                        borderBottom: isFlat ? `1px solid ${rgba(cardBg, 0.3)}` : undefined,
-                        display: "flex",
-                        alignItems: "center",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      {need.needLabel}
-                    </div>
-                  ) : null,
-                )}
-                {layoutData.needs.every((n) => !n.needLabel) && (
-                  <div
-                    style={{
-                      backgroundColor: cardBg,
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      color: mutedClr,
-                      border: `1px dashed ${rgba(cardBg, 0.5)}`,
-                      fontSize: 12,
-                    }}
-                  >
-                    Sin necesidades
-                  </div>
-                )}
-              </div>
-
-              {/* Column 2: Drivers */}
-              <div style={{ width: COL_W, flexShrink: 0, position: "relative" }}>
-                {layoutData.needs.map((need) =>
-                  need.drivers.map((driver) =>
-                    driver.driverLabel ? (
-                      <div
-                        key={driver.driverId}
-                        style={{
-                          position: "absolute",
-                          top: need.needTop + driver.driverTop,
-                          width: "100%",
-                          height: driver.driverHeight,
-                          backgroundColor: accentBg,
-                          borderRadius: isFlat ? 0 : 16,
-                          padding: "8px 12px",
-                          color: textClr,
-                          border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
-                          borderBottom: isFlat ? `1px solid ${rgba(cardBg, 0.3)}` : undefined,
-                          display: "flex",
-                          alignItems: "center",
-                          fontSize: 14,
-                          boxSizing: "border-box",
-                        }}
-                      >
-                        {driver.driverLabel}
-                      </div>
-                    ) : null,
-                  ),
-                )}
-                {layoutData.needs.every((n) => n.drivers.every((d) => !d.driverLabel)) && (
-                  <div
-                    style={{
-                      backgroundColor: cardBg,
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      color: mutedClr,
-                      border: `1px dashed ${rgba(cardBg, 0.5)}`,
-                      fontSize: 12,
-                    }}
-                  >
-                    Sin impulsores
-                  </div>
-                )}
-              </div>
-
-              {/* Column 3: Requirements */}
-              <div style={{ width: COL_W, flexShrink: 0, position: "relative" }}>
-                {layoutData.needs.map((need) =>
-                  need.drivers.map((driver) =>
-                    driver.requirements.map((req) =>
-                      req.reqLabel ? (
-                        <div
-                          key={req.reqId}
-                          style={{
-                            position: "absolute",
-                            top: need.needTop + driver.driverTop + req.reqTop,
-                            width: "100%",
-                            height: req.reqHeight,
-                            backgroundColor: cardBg,
-                            borderRadius: isFlat ? 0 : 8,
-                            padding: "8px 12px",
-                            color: textClr,
-                            border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
-                            borderBottom: isFlat ? `1px solid ${rgba(cardBg, 0.3)}` : undefined,
-                            display: "flex",
-                            alignItems: "center",
-                            fontSize: 14,
-                            boxSizing: "border-box",
-                          }}
-                        >
-                          {req.reqLabel}
-                        </div>
-                      ) : null,
-                    ),
-                  ),
-                )}
-                {layoutData.needs.every((n) => n.drivers.every((d) => d.requirements.every((r) => !r.reqLabel))) && (
-                  <div
-                    style={{
-                      backgroundColor: cardBg,
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      color: mutedClr,
-                      border: `1px dashed ${rgba(cardBg, 0.5)}`,
-                      fontSize: 12,
-                    }}
-                  >
-                    Sin requisitos
-                  </div>
-                )}
-              </div>
+          <div style={{ width: COL_W, flexShrink: 0 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: textClr, marginBottom: 4 }}>
+              Impulsores
             </div>
+            <div style={{ fontSize: 12, color: mutedClr, marginBottom: 8 }}>
+              Punto de transicion
+            </div>
+            {!isFlat && (
+              <div style={{ borderBottom: `1px solid ${rgba(cardBg, 0.3)}`, marginBottom: 8 }} />
+            )}
+          </div>
+          <div style={{ width: COL_W, flexShrink: 0 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: textClr, marginBottom: 4 }}>
+              Requisitos
+            </div>
+            <div style={{ fontSize: 12, color: mutedClr, marginBottom: 8 }}>
+              Caracteristicas medibles
+            </div>
+            {!isFlat && (
+              <div style={{ borderBottom: `1px solid ${rgba(cardBg, 0.3)}`, marginBottom: 8 }} />
+            )}
+          </div>
+        </div>
 
-            {/* SVG connector lines overlay */}
-            <svg
+        {/* Tree body — single relative container, all children use absolute positioning */}
+        <div
+          style={{
+            position: "relative",
+            width: treeBodyWidth,
+            height: treeBodyHeight,
+            margin: `0 ${BODY_PADDING}px ${BODY_PADDING}px ${BODY_PADDING}px`,
+          }}
+        >
+          {/* Need cards (column 1) */}
+          {layoutData.needs.map((need) =>
+            need.needLabel ? (
+              <div
+                key={need.needId}
+                style={{
+                  ...cardBaseStyle,
+                  position: "absolute",
+                  left: 0,
+                  top: need.needTop,
+                  width: COL_W,
+                  height: need.needHeight,
+                  backgroundColor: accentBg,
+                  borderRadius: isFlat ? 0 : 16,
+                  fontWeight: 600,
+                  border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
+                  borderBottom: isFlat ? `1px solid ${rgba(cardBg, 0.3)}` : undefined,
+                }}
+              >
+                {need.needLabel}
+              </div>
+            ) : null,
+          )}
+          {layoutData.needs.every((n) => !n.needLabel) && (
+            <div
               style={{
+                ...cardBaseStyle,
                 position: "absolute",
-                top: 0,
                 left: 0,
-                width: "100%",
-                height: "100%",
-                pointerEvents: "none",
+                top: 0,
+                width: COL_W,
+                height: ITEM_H,
+                backgroundColor: cardBg,
+                borderRadius: 8,
+                color: mutedClr,
+                border: `1px dashed ${rgba(cardBg, 0.5)}`,
+                fontSize: 12,
+                fontStyle: "italic",
+                justifyContent: "center",
               }}
             >
-              <defs>
-                <marker id="arrow-need-driver" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill={rgba(accentBg, 0.6)} />
-                </marker>
-                <marker id="arrow-driver-req" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill={rgba(cardBg, 0.5)} />
-                </marker>
-              </defs>
-              {layoutData.needs.map((need) =>
-                need.drivers.map((driver) => {
-                  const needCenterY = need.needTop + need.needHeight / 2;
-                  const driverCenterY = need.needTop + driver.driverTop + driver.driverHeight / 2;
+              Sin necesidades
+            </div>
+          )}
 
-                  // Need → Driver connector (only if both have labels)
-                  const needToDriverLine = (need.needLabel && driver.driverLabel) ? (
+          {/* Driver cards (column 2) */}
+          {layoutData.needs.map((need) =>
+            need.drivers.map((driver) =>
+              driver.driverLabel ? (
+                <div
+                  key={driver.driverId}
+                  style={{
+                    ...cardBaseStyle,
+                    position: "absolute",
+                    left: midColLeftEdge,
+                    top: need.needTop + driver.driverTop,
+                    width: COL_W,
+                    height: driver.driverHeight,
+                    backgroundColor: accentBg,
+                    borderRadius: isFlat ? 0 : 16,
+                    border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
+                    borderBottom: isFlat ? `1px solid ${rgba(cardBg, 0.3)}` : undefined,
+                  }}
+                >
+                  {driver.driverLabel}
+                </div>
+              ) : null,
+            ),
+          )}
+          {layoutData.needs.every((n) => n.drivers.every((d) => !d.driverLabel)) && (
+            <div
+              style={{
+                ...cardBaseStyle,
+                position: "absolute",
+                left: midColLeftEdge,
+                top: 0,
+                width: COL_W,
+                height: ITEM_H,
+                backgroundColor: cardBg,
+                borderRadius: 8,
+                color: mutedClr,
+                border: `1px dashed ${rgba(cardBg, 0.5)}`,
+                fontSize: 12,
+                fontStyle: "italic",
+                justifyContent: "center",
+              }}
+            >
+              Sin impulsores
+            </div>
+          )}
+
+          {/* Requirement cards (column 3) */}
+          {layoutData.needs.map((need) =>
+            need.drivers.map((driver) =>
+              driver.requirements.map((req) =>
+                req.reqLabel ? (
+                  <div
+                    key={req.reqId}
+                    style={{
+                      ...cardBaseStyle,
+                      position: "absolute",
+                      left: rightColLeftEdge,
+                      top: need.needTop + driver.driverTop + req.reqTop,
+                      width: COL_W,
+                      height: req.reqHeight,
+                      backgroundColor: cardBg,
+                      borderRadius: isFlat ? 0 : 8,
+                      border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
+                      borderBottom: isFlat ? `1px solid ${rgba(cardBg, 0.3)}` : undefined,
+                    }}
+                  >
+                    {req.reqLabel}
+                  </div>
+                ) : null,
+              ),
+            ),
+          )}
+          {layoutData.needs.every((n) =>
+            n.drivers.every((d) => d.requirements.every((r) => !r.reqLabel)),
+          ) && (
+            <div
+              style={{
+                ...cardBaseStyle,
+                position: "absolute",
+                left: rightColLeftEdge,
+                top: 0,
+                width: COL_W,
+                height: ITEM_H,
+                backgroundColor: cardBg,
+                borderRadius: 8,
+                color: mutedClr,
+                border: `1px dashed ${rgba(cardBg, 0.5)}`,
+                fontSize: 12,
+                fontStyle: "italic",
+                justifyContent: "center",
+              }}
+            >
+              Sin requisitos
+            </div>
+          )}
+
+          {/* SVG connector lines overlay with arrowheads */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={treeBodyWidth}
+            height={treeBodyHeight}
+            viewBox={`0 0 ${treeBodyWidth} ${treeBodyHeight}`}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              pointerEvents: "none",
+            }}
+          >
+            <defs>
+              <marker
+                id="ctq-arrow-need-driver"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={rgba(accentBg, 0.7)} />
+              </marker>
+              <marker
+                id="ctq-arrow-driver-req"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={rgba(cardBg, 0.55)} />
+              </marker>
+            </defs>
+            {layoutData.needs.map((need) =>
+              need.drivers.map((driver) => {
+                const needCenterY = need.needTop + need.needHeight / 2;
+                const driverCenterY =
+                  need.needTop + driver.driverTop + driver.driverHeight / 2;
+                const lines: ReactNode[] = [];
+
+                // Need → Driver connector (only if both have labels)
+                if (need.needLabel && driver.driverLabel) {
+                  lines.push(
                     <line
                       key={`nd-${driver.driverId}`}
                       x1={leftColRightEdge}
                       y1={needCenterY}
                       x2={midColLeftEdge}
                       y2={driverCenterY}
-                      stroke={rgba(accentBg, 0.6)}
+                      stroke={rgba(accentBg, 0.7)}
                       strokeWidth={1.5}
-                      markerEnd="url(#arrow-need-driver)"
-                    />
-                  ) : null;
-
-                  // Driver → Requirement connectors
-                  const reqLines = driver.requirements
-                    .filter((req) => req.reqLabel && driver.driverLabel)
-                    .map((req) => {
-                      const reqCenterY = need.needTop + driver.driverTop + req.reqTop + req.reqHeight / 2;
-                      return (
-                        <line
-                          key={`dr-${req.reqId}`}
-                          x1={midColRightEdge}
-                          y1={driverCenterY}
-                          x2={rightColLeftEdge}
-                          y2={reqCenterY}
-                          stroke={rgba(cardBg, 0.5)}
-                          strokeWidth={1.5}
-                          markerEnd="url(#arrow-driver-req)"
-                        />
-                      );
-                    });
-
-                  return (
-                    <g key={`group-${driver.driverId}`}>
-                      {needToDriverLine}
-                      {reqLines}
-                    </g>
+                      markerEnd="url(#ctq-arrow-need-driver)"
+                    />,
                   );
-                }),
-              )}
-            </svg>
-          </div>
+                }
+
+                // Driver → Requirement connectors (only if both have labels)
+                for (const req of driver.requirements) {
+                  if (!driver.driverLabel || !req.reqLabel) continue;
+                  const reqCenterY =
+                    need.needTop + driver.driverTop + req.reqTop + req.reqHeight / 2;
+                  lines.push(
+                    <line
+                      key={`dr-${req.reqId}`}
+                      x1={midColRightEdge}
+                      y1={driverCenterY}
+                      x2={rightColLeftEdge}
+                      y2={reqCenterY}
+                      stroke={rgba(cardBg, 0.55)}
+                      strokeWidth={1.5}
+                      markerEnd="url(#ctq-arrow-driver-req)"
+                    />,
+                  );
+                }
+
+                return (
+                  <g key={`group-${driver.driverId}`}>
+                    {lines}
+                  </g>
+                );
+              }),
+            )}
+          </svg>
         </div>
       </div>
 
