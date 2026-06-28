@@ -35,11 +35,10 @@ function InlineItem({
     }
   }, [editing]);
 
-  useEffect(() => {
-    if (!editing) {
-      setEditValue(label);
-    }
-  }, [label, editing]);
+  function startEditing() {
+    setEditValue(label);
+    setEditing(true);
+  }
 
   function commitEdit() {
     const trimmed = editValue.trim();
@@ -78,7 +77,7 @@ function InlineItem({
           className="min-w-0 flex-1 truncate"
           onDoubleClick={(e) => {
             e.stopPropagation();
-            setEditing(true);
+            startEditing();
           }}
         >
           {label}
