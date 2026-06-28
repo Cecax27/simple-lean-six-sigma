@@ -144,7 +144,7 @@ export default function LandingPage() {
                 </p>
                 {tool.status === "ready" ? (
                   <Link
-                    href={tool.id === "sipoc" ? "/sipoc" : `/inicio`}
+                    href={tool.hrefBase}
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
                       "mt-4 w-full",

@@ -27,10 +27,16 @@ export default function DocsPage() {
 
   const docList = Object.values(docs).sort((a, b) => b.updatedAt - a.updatedAt);
 
-  function handleCreate() {
+  function handleCreateSipoc() {
     const id = createDoc("sipoc", "Nuevo diagrama SIPOC");
     setEditingId(id);
     setEditTitle("Nuevo diagrama SIPOC");
+  }
+
+  function handleCreateIshikawa() {
+    const id = createDoc("ishikawa", "Nuevo diagrama Ishikawa");
+    setEditingId(id);
+    setEditTitle("Nuevo diagrama Ishikawa");
   }
 
   function handleRename(id: string) {
@@ -49,9 +55,14 @@ export default function DocsPage() {
             Gestiona tus diagramas y analisis guardados.
           </p>
         </div>
-        <Button onClick={handleCreate} size="sm" className="gap-2">
-          <Plus className="size-4" /> Nuevo SIPOC
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleCreateSipoc} size="sm" className="gap-2">
+            <Plus className="size-4" /> Nuevo SIPOC
+          </Button>
+          <Button onClick={handleCreateIshikawa} size="sm" className="gap-2">
+            <Plus className="size-4" /> Nuevo Ishikawa
+          </Button>
+        </div>
       </div>
 
       {docList.length === 0 ? (
@@ -64,7 +75,7 @@ export default function DocsPage() {
                 Crea tu primer diagrama SIPOC para empezar.
               </p>
             </div>
-            <Button onClick={handleCreate} size="sm">
+            <Button onClick={handleCreateSipoc} size="sm">
               <Plus className="mr-2 size-4" /> Nuevo SIPOC
             </Button>
           </CardContent>
@@ -150,7 +161,7 @@ function DocRow({
         <div className="flex items-center gap-1">
           {!editing && (
             <>
-              <Link href={`/sipoc/${doc.id}`}>
+              <Link href={`/${doc.toolId}/${doc.id}`}>
                 <Button variant="ghost" size="icon-sm" title="Abrir">
                   <ArrowRight className="size-4" />
                 </Button>
