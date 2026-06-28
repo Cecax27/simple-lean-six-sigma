@@ -9,7 +9,7 @@ import {
   Type,
   ToggleLeft,
 } from "lucide-react";
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,6 +52,8 @@ const SIZE_UNITS: { id: ExportSizeUnit; labelEs: string }[] = [
 const SIZE_PRESETS: { labelEs: string; value: number; unit: ExportSizeUnit }[] = [
   { labelEs: "A4 horizontal", value: 842, unit: "px" },
   { labelEs: "A4 vertical", value: 595, unit: "px" },
+  { labelEs: "Carta horizontal", value: 792, unit: "px" },
+  { labelEs: "Carta vertical", value: 612, unit: "px" },
   { labelEs: "Pantalla (HD)", value: 1600, unit: "px" },
   { labelEs: "4K", value: 3840, unit: "px" },
 ];
@@ -202,6 +204,39 @@ function ExportDialogContent({
   onExport: () => void;
   onClose: () => void;
 }) {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.4);
+
+  const sizePx = options.size.unit === "cm" ? cmToPx(options.size.value) : options.size.value;
+
+  const computeScale = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const availableWidth = canvas.clientWidth;
+    if (availableWidth <= 0) return;
+    const computed = availableWidth / sizePx;
+    setScale(Math.min(computed, 1));
+  }, [sizePx]);
+
+  useEffect(() => {
+    computeScale();
+  }, [computeScale, previewKey]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const observer = new ResizeObserver(() => computeScale());
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [computeScale]);
+
+  const sizeSelectValue = (() => {
+    const preset = SIZE_PRESETS.find(
+      (p) => p.value === options.size.value && p.unit === options.size.unit,
+    );
+    return preset ? String(preset.value) : "";
+  })();
+
   return (
     <div className="flex h-full max-h-[85vh] flex-col">
       <DialogHeader className="shrink-0 px-6 pt-6 pb-3 border-b">
@@ -214,13 +249,19 @@ function ExportDialogContent({
       <div className="flex min-h-0 flex-1 gap-6 p-6 overflow-hidden">
         {/* Left: Preview */}
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg border bg-muted/30 p-4">
+          <div
+            ref={canvasRef}
+            className="relative flex min-h-0 flex-1 overflow-hidden rounded-lg border bg-muted/30"
+          >
             <div
               key={previewKey}
-              className="origin-top-left"
+              className="absolute"
               style={{
-                transform: "scale(0.35)",
-                width: `${options.size.value}px`,
+                top: "50%",
+                left: "50%",
+                transform: `translate(-50%, -50%) scale(${scale})`,
+                transformOrigin: "center center",
+                width: `${sizePx}px`,
               }}
             >
               {previewContainer}
@@ -296,7 +337,7 @@ function ExportDialogContent({
             </Label>
             <div className="space-y-2">
               <Select
-                value={String(options.size.value)}
+                value={sizeSelectValue}
                 onValueChange={(v) => {
                   const preset = SIZE_PRESETS.find((p) => String(p.value) === v);
                   if (preset) {
@@ -319,12 +360,16 @@ function ExportDialogContent({
               <div className="flex items-center gap-1.5">
                 <Input
                   type="number"
-                  min={200}
-                  max={8000}
-                  step={50}
+                  min={options.size.unit === "cm" ? 5 : 200}
+                  max={options.size.unit === "cm" ? 211 : 8000}
+                  step={options.size.unit === "cm" ? 1 : 50}
                   value={options.size.value}
                   onChange={(e) => {
-                    const val = Math.max(200, Math.min(8000, Number(e.target.value) || 200));
+                    const raw = Number(e.target.value);
+                    if (isNaN(raw)) return;
+                    const val = options.size.unit === "cm"
+                      ? Math.max(5, Math.min(211, raw))
+                      : Math.max(200, Math.min(8000, raw));
                     setExportOptions({ size: { ...options.size, value: val } });
                     debouncedPreview();
                   }}

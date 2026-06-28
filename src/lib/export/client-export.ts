@@ -2,6 +2,9 @@
 
 import { jsPDF } from "jspdf";
 import { toPng, toSvg } from "html-to-image";
+import type { SIPOCDiagram } from "@/tools/sipoc/types";
+import type { ExportOptions } from "@/lib/export/types";
+import { renderSipocToSvg } from "@/lib/export/native-svg";
 
 function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
@@ -49,6 +52,19 @@ export async function exportAsSvg(
 
   const response = await fetch(dataUrl);
   const blob = await response.blob();
+  const filename = options.filename ?? `${safeName(diagramTitle)}.svg`;
+  downloadBlob(filename, blob);
+}
+
+export async function exportAsNativeSvg(
+  diagram: SIPOCDiagram,
+  pathLabels: string[],
+  exportOptions: ExportOptions,
+  diagramTitle: string,
+  options: ExportImageOptions = {},
+): Promise<void> {
+  const svg = renderSipocToSvg(diagram, pathLabels, exportOptions);
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
   const filename = options.filename ?? `${safeName(diagramTitle)}.svg`;
   downloadBlob(filename, blob);
 }

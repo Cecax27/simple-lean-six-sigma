@@ -7,6 +7,10 @@ interface ExportDiagramProps {
   options: ExportOptions;
 }
 
+function cmToPx(cm: number): number {
+  return Math.round(cm * 37.795);
+}
+
 function resolveColor(options: ExportOptions, key: "header" | "card" | "accent" | "background" | "text"): string {
   return options.colors[key] ?? "#ffffff";
 }
@@ -167,7 +171,7 @@ function adjustTextLight(baseColor: string): string {
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
   const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  return brightness < 128 ? `rgba(250,250,250,0.6)` : `rgba(24,24,27,0.5)`;
+  return brightness < 128 ? `rgba(24,24,27,0.5)` : `rgba(250,250,250,0.6)`;
 }
 
 export function ExportDiagram({ diagram, pathLabels, options }: ExportDiagramProps) {
@@ -189,13 +193,14 @@ export function ExportDiagram({ diagram, pathLabels, options }: ExportDiagramPro
   const showScope = options.fields.includes("scope");
   const showDate = options.fields.includes("date");
 
+  const sizePx = options.size.unit === "cm" ? cmToPx(options.size.value) : options.size.value;
   const scopeText = [diagram.processStart, diagram.processEnd].filter(Boolean).join(" → ");
 
   return (
     <article
       className="relative rounded-3xl border p-8 shadow-lg"
       style={{
-        width: `${options.size.value}px`,
+        width: `${sizePx}px`,
         backgroundColor: bg,
         borderColor: adjustAlpha(cardBg, 0.3),
         color: textClr,

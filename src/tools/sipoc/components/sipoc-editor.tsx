@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
-import { exportAsPdf, exportAsPng, exportAsSvg } from "@/lib/export/client-export";
+import { exportAsNativeSvg, exportAsPdf, exportAsPng } from "@/lib/export/client-export";
 import type { ExportFormat, ExportOptions } from "@/lib/export/types";
 import { MAX_NESTING_DEPTH } from "@/tools/sipoc/tree";
 import { serializeToXml, parseFromXml } from "@/tools/sipoc/xml";
@@ -152,17 +152,19 @@ export function SipocEditor({ docId }: SipocEditorProps) {
         <ExportDiagram diagram={current} pathLabels={pathLabels} options={opts} />
       ),
       export: async (format: ExportFormat, opts: ExportOptions) => {
-        if (!exportAreaRef.current) {
-          pushFeedback("error", "No se encontro el area para exportar.");
-          return;
-        }
         try {
           if (format === "svg") {
-            await exportAsSvg(exportAreaRef.current, current.title);
-          } else if (format === "png") {
-            await exportAsPng(exportAreaRef.current, current.title);
+            await exportAsNativeSvg(current, pathLabels, opts, current.title);
           } else {
-            await exportAsPdf(exportAreaRef.current, current.title);
+            if (!exportAreaRef.current) {
+              pushFeedback("error", "No se encontro el area para exportar.");
+              return;
+            }
+            if (format === "png") {
+              await exportAsPng(exportAreaRef.current, current.title);
+            } else {
+              await exportAsPdf(exportAreaRef.current, current.title);
+            }
           }
           pushFeedback("success", `Exportacion ${format.toUpperCase()} completada.`);
         } catch (error) {

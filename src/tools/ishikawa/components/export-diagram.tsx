@@ -1,6 +1,10 @@
 import type { IshikawaDiagram } from "@/tools/ishikawa/types";
 import type { ExportOptions } from "@/lib/export/types";
 
+function cmToPx(cm: number): number {
+  return Math.round(cm * 37.795);
+}
+
 function safeName(name: string): string {
   const trimmed = name.trim();
   return trimmed.length > 0 ? trimmed : "Sin titulo";
@@ -49,11 +53,13 @@ export function ExportDiagram({ diagram, options }: ExportDiagramProps) {
   const cardBg = options.colors.card ?? "#ffffff";
   const textClr = options.colors.text ?? "#18181b";
 
+  const sizePx = options.size.unit === "cm" ? cmToPx(options.size.value) : options.size.value;
+
   return (
     <article
       className="relative rounded-3xl border p-8 shadow-lg"
       style={{
-        width: `${options.size.value}px`,
+        width: `${sizePx}px`,
         backgroundColor: bg,
         borderColor: adjustAlpha(cardBg, 0.3),
         color: textClr,
