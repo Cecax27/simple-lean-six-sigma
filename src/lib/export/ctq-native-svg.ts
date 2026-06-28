@@ -535,6 +535,15 @@ export function renderCtqToSvg(tree: CTQTree, options: ExportOptions): string {
 
   parts.push(`<svg ${attrs({ xmlns: "http://www.w3.org/2000/svg", width: la.width, height: la.height, viewBox: `0 0 ${la.width} ${la.height}` })}>`);
 
+  // Arrowhead marker
+  parts.push(`  <defs>`);
+  parts.push(
+    `    <marker id="ctq-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">`,
+  );
+  parts.push(`      <path d="M 0 0 L 10 5 L 0 10 z" fill="${rgbaStr(accentBg, 0.6)}" />`);
+  parts.push(`    </marker>`);
+  parts.push(`  </defs>`);
+
   // Background
   parts.push(`  ${rectElement(0, 0, la.width, la.height, 0, 0, { fill: colors.background })}`);
 
@@ -555,7 +564,7 @@ export function renderCtqToSvg(tree: CTQTree, options: ExportOptions): string {
   parts.push(`  <!-- Connectors -->`);
   for (const line of la.connectorLines) {
     parts.push(
-      `  <line ${attrs({ x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2, stroke: rgbaStr(accentBg, 0.6), "stroke-width": 1.5 })} />`,
+      `  <line ${attrs({ x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2, stroke: rgbaStr(accentBg, 0.6), "stroke-width": 1.5, "marker-end": "url(#ctq-arrow)" })} />`,
     );
   }
 
