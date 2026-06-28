@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Info, RotateCcw, PanelRightClose, PanelRightOpen } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BreadcrumbNav } from "@/tools/sipoc/components/breadcrumb-nav";
 import { ExportDiagram } from "@/tools/sipoc/components/export-diagram";
@@ -64,14 +64,17 @@ export function SipocEditor({ docId }: SipocEditorProps) {
   const renameDoc = useDocsStore((state) => state.renameDoc);
 
   const current = getCurrent();
-  const pathLabels = [root.title];
-  let pointer = root;
-  for (const processId of path) {
-    const process = pointer.processes.find((entry) => entry.id === processId);
-    if (!process) break;
-    pathLabels.push(process.label);
-    pointer = process.child ?? pointer;
-  }
+  const pathLabels = useMemo(() => {
+    const labels = [root.title];
+    let pointer = root;
+    for (const processId of path) {
+      const process = pointer.processes.find((entry) => entry.id === processId);
+      if (!process) break;
+      labels.push(process.label);
+      pointer = process.child ?? pointer;
+    }
+    return labels;
+  }, [root, path]);
 
   // Load doc data on mount
   useEffect(() => {
@@ -109,7 +112,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
     setFeedback({ tone, message });
   }
 
-  function downloadXml(): void {
+  const downloadXml = useCallback((): void => {
     const xml = serializeToXml(root);
     const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -121,9 +124,9 @@ export function SipocEditor({ docId }: SipocEditorProps) {
     anchor.remove();
     URL.revokeObjectURL(url);
     pushFeedback("success", "Archivo XML descargado.");
-  }
+  }, [root, docTitle]);
 
-  async function handleLoadXml(file: File): Promise<void> {
+  const handleLoadXml = useCallback(async (file: File): Promise<void> => {
     const text = await file.text();
     try {
       const diagram = parseFromXml(text);
@@ -133,7 +136,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
       const message = error instanceof Error ? error.message : "No se pudo cargar el XML.";
       pushFeedback("error", message);
     }
-  }
+  }, [replaceRoot]);
 
   const { exportOptions, registerToolMenus } = useToolMenus();
 
@@ -177,7 +180,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
     fileExtension: "xml",
     save: downloadXml,
     open: handleLoadXml,
-  }), [docId, docTitle]);
+  }), [docId, docTitle, downloadXml, handleLoadXml]);
 
   useEffect(() => {
     registerToolMenus(exportDescriptor, fileDescriptor);

@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, Info, Plus, RotateCcw } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,7 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
     setNewCategoryValue("");
   }
 
-  function downloadXml(): void {
+  const downloadXml = useCallback((): void => {
     const xml = serializeToXml(root);
     const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -117,9 +117,9 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
     anchor.remove();
     URL.revokeObjectURL(url);
     pushFeedback("success", "Archivo XML descargado.");
-  }
+  }, [root, docTitle]);
 
-  async function handleLoadXml(file: File): Promise<void> {
+  const handleLoadXml = useCallback(async (file: File): Promise<void> => {
     const text = await file.text();
     try {
       const diagram = parseFromXml(text);
@@ -129,7 +129,7 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
       const message = error instanceof Error ? error.message : "No se pudo cargar el XML.";
       pushFeedback("error", message);
     }
-  }
+  }, [replaceRoot]);
 
   const { exportOptions, registerToolMenus } = useToolMenus();
 
@@ -171,7 +171,7 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
     fileExtension: "xml",
     save: downloadXml,
     open: handleLoadXml,
-  }), [docId, docTitle]);
+  }), [docId, docTitle, downloadXml, handleLoadXml]);
 
   useEffect(() => {
     registerToolMenus(exportDescriptor, fileDescriptor);

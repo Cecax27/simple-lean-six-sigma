@@ -8,7 +8,6 @@ import {
   Ruler,
   Type,
   ToggleLeft,
-  Image,
 } from "lucide-react";
 import { useState, useCallback, type ReactNode } from "react";
 
@@ -109,7 +108,7 @@ export function ExportMenu({ collapsed }: ExportMenuProps) {
     return (
       <>
         <DropdownMenuItem onClick={() => setOpen(true)}>
-          <Image className="mr-2 size-4" />
+          <ImageIcon className="mr-2 size-4" />
           Exportar...
         </DropdownMenuItem>
         <Dialog open={open} onOpenChange={setOpen}>
