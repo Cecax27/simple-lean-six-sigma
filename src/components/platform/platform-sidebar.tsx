@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TOOLS } from "@/tools/registry";
 import { usePreferencesStore } from "@/store/preferences-store";
+import { ToolMenusZone } from "@/components/platform/menus/tool-menus-zone";
 
 export function PlatformSidebar() {
   const sidebarCollapsed = usePreferencesStore((state) => state.sidebarCollapsed);
@@ -120,19 +121,13 @@ export function PlatformSidebar() {
 
         {sidebarCollapsed && (
           <div className="flex flex-1 flex-col items-center gap-2 py-2">
-            <ToolIconLink href="/sipoc" active={pathname.startsWith("/sipoc")} />
+            <ToolMenusZone collapsed />
             <div className="flex-1" />
           </div>
         )}
 
-        {/* Active doc indicator */}
-        {docId && !sidebarCollapsed && (
-          <div className="mt-3 border-t pt-3">
-            <p className="text-[11px] text-muted-foreground">
-              Documento abierto
-            </p>
-          </div>
-        )}
+        {/* Tool menus zone (expanded) */}
+        {!sidebarCollapsed && <ToolMenusZone collapsed={false} />}
       </aside>
 
       {/* Mobile trigger */}
@@ -182,21 +177,6 @@ function ToolNavLink({
       >
         <Wrench className="mr-2 size-4" />
         <span>{label}</span>
-      </Button>
-    </Link>
-  );
-}
-
-function ToolIconLink({ href, active }: { href: string; active: boolean }) {
-  return (
-    <Link href={href}>
-      <Button
-        variant={active ? "secondary" : "ghost"}
-        size="icon-sm"
-        aria-label="SIPOC"
-        title="SIPOC"
-      >
-        <Wrench className="size-4" />
       </Button>
     </Link>
   );
@@ -301,6 +281,8 @@ function MobileSidebar({
               )}
             </div>
           </div>
+
+          <ToolMenusZone collapsed={false} />
 
           <div className="mt-auto border-t pt-3">
             <div className="flex items-center justify-between">

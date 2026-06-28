@@ -30,4 +30,17 @@ export interface SIPOCState {
   path: string[];
 }
 
-export type ExportFormat = "svg" | "png" | "pdf";
+export type { ExportFormat } from "@/lib/export/types";
+
+import type { ExportLayoutOption, ExportFieldOption } from "@/lib/export/types";
+
+export const sipocExportLayouts: ExportLayoutOption[] = [
+  { id: "cards", labelEs: "Tarjetas" },
+  { id: "flat", labelEs: "Plano" },
+];
+
+export const sipocExportFields: ExportFieldOption[] = [
+  { id: "title", labelEs: "Titulo" },
+  { id: "scope", labelEs: "Alcance" },
+  { id: "date", labelEs: "Fecha" },
+];

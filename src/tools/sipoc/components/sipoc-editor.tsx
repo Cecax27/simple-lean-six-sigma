@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Download, FileUp, Info, RotateCcw, PanelRightClose, PanelRightOpen } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Info, RotateCcw, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BreadcrumbNav } from "@/tools/sipoc/components/breadcrumb-nav";
 import { ExportDiagram } from "@/tools/sipoc/components/export-diagram";
@@ -10,21 +10,20 @@ import { SectionCard } from "@/tools/sipoc/components/section-card";
 import { SipocTreePanel } from "@/tools/sipoc/components/sipoc-tree-panel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
-import { exportAsPdf, exportAsPng, exportAsSvg } from "@/lib/export/client-export";
+import { exportAsNativeSvg, exportAsPdf, exportAsPng } from "@/lib/export/client-export";
+import type { ExportFormat, ExportOptions } from "@/lib/export/types";
 import { MAX_NESTING_DEPTH } from "@/tools/sipoc/tree";
 import { serializeToXml, parseFromXml } from "@/tools/sipoc/xml";
+import { sipocExportLayouts, sipocExportFields } from "@/tools/sipoc/types";
 import { useSipocStore } from "@/tools/sipoc/store";
 import { useDocsStore } from "@/store/docs-store";
-import type { ExportFormat } from "@/tools/sipoc/types";
+import {
+  useToolMenus,
+  type ExportDescriptor,
+  type FileDescriptor,
+} from "@/components/platform/tool-menus-context";
 
 type FeedbackTone = "info" | "success" | "error";
 
@@ -38,11 +37,8 @@ interface SipocEditorProps {
 }
 
 export function SipocEditor({ docId }: SipocEditorProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const exportAreaRef = useRef<HTMLDivElement>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
-  const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("svg");
   const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);
   const [treePanelOpen, setTreePanelOpen] = useState<boolean>(false);
   const loadedRef = useRef(false);
@@ -68,14 +64,17 @@ export function SipocEditor({ docId }: SipocEditorProps) {
   const renameDoc = useDocsStore((state) => state.renameDoc);
 
   const current = getCurrent();
-  const pathLabels = [root.title];
-  let pointer = root;
-  for (const processId of path) {
-    const process = pointer.processes.find((entry) => entry.id === processId);
-    if (!process) break;
-    pathLabels.push(process.label);
-    pointer = process.child ?? pointer;
-  }
+  const pathLabels = useMemo(() => {
+    const labels = [root.title];
+    let pointer = root;
+    for (const processId of path) {
+      const process = pointer.processes.find((entry) => entry.id === processId);
+      if (!process) break;
+      labels.push(process.label);
+      pointer = process.child ?? pointer;
+    }
+    return labels;
+  }, [root, path]);
 
   // Load doc data on mount
   useEffect(() => {
@@ -113,7 +112,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
     setFeedback({ tone, message });
   }
 
-  function downloadXml(): void {
+  const downloadXml = useCallback((): void => {
     const xml = serializeToXml(root);
     const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -125,9 +124,9 @@ export function SipocEditor({ docId }: SipocEditorProps) {
     anchor.remove();
     URL.revokeObjectURL(url);
     pushFeedback("success", "Archivo XML descargado.");
-  }
+  }, [root, docTitle]);
 
-  async function handleLoadXml(file: File): Promise<void> {
+  const handleLoadXml = useCallback(async (file: File): Promise<void> => {
     const text = await file.text();
     try {
       const diagram = parseFromXml(text);
@@ -137,32 +136,58 @@ export function SipocEditor({ docId }: SipocEditorProps) {
       const message = error instanceof Error ? error.message : "No se pudo cargar el XML.";
       pushFeedback("error", message);
     }
-  }
+  }, [replaceRoot]);
 
-  async function handleExport(format: ExportFormat): Promise<void> {
-    if (!exportAreaRef.current) {
-      pushFeedback("error", "No se encontro el area para exportar.");
-      return;
-    }
-    setIsExporting(true);
-    try {
-      if (format === "svg") {
-        await exportAsSvg(exportAreaRef.current, current.title);
-        pushFeedback("success", "Exportacion SVG completada.");
-      } else if (format === "png") {
-        await exportAsPng(exportAreaRef.current, current.title);
-        pushFeedback("success", "Exportacion PNG completada.");
-      } else {
-        await exportAsPdf(exportAreaRef.current, current.title);
-        pushFeedback("success", "Exportacion PDF completada.");
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo exportar el diagrama.";
-      pushFeedback("error", message);
-    } finally {
-      setIsExporting(false);
-    }
-  }
+  const { exportOptions, registerToolMenus } = useToolMenus();
+
+  const exportDescriptor = useMemo<ExportDescriptor | null>(() => {
+    return {
+      docId,
+      toolId: "sipoc",
+      title: docTitle,
+      layouts: sipocExportLayouts,
+      fields: sipocExportFields,
+      formats: ["svg", "png", "pdf"],
+      renderPreview: (opts: ExportOptions) => (
+        <ExportDiagram diagram={current} pathLabels={pathLabels} options={opts} />
+      ),
+      export: async (format: ExportFormat, opts: ExportOptions) => {
+        try {
+          if (format === "svg") {
+            await exportAsNativeSvg(current, pathLabels, opts, current.title);
+          } else {
+            if (!exportAreaRef.current) {
+              pushFeedback("error", "No se encontro el area para exportar.");
+              return;
+            }
+            if (format === "png") {
+              await exportAsPng(exportAreaRef.current, current.title);
+            } else {
+              await exportAsPdf(exportAreaRef.current, current.title);
+            }
+          }
+          pushFeedback("success", `Exportacion ${format.toUpperCase()} completada.`);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "No se pudo exportar el diagrama.";
+          pushFeedback("error", message);
+        }
+      },
+    };
+  }, [docId, docTitle, current, pathLabels]);
+
+  const fileDescriptor = useMemo<FileDescriptor | null>(() => ({
+    docId,
+    toolId: "sipoc",
+    title: docTitle,
+    fileExtension: "xml",
+    save: downloadXml,
+    open: handleLoadXml,
+  }), [docId, docTitle, downloadXml, handleLoadXml]);
+
+  useEffect(() => {
+    registerToolMenus(exportDescriptor, fileDescriptor);
+    return () => registerToolMenus(null, null);
+  }, [exportDescriptor, fileDescriptor, registerToolMenus]);
 
   const feedbackMeta =
     feedback?.tone === "error"
@@ -177,12 +202,6 @@ export function SipocEditor({ docId }: SipocEditorProps) {
       : feedback?.tone === "success"
         ? "border-emerald-500/80 bg-emerald-50/95 text-emerald-900 ring-1 ring-emerald-400/45 dark:border-emerald-500/70 dark:bg-emerald-950/70 dark:text-emerald-100 dark:ring-emerald-500/45"
         : "border-sky-500/80 bg-sky-50/95 text-sky-900 ring-1 ring-sky-400/45 dark:border-sky-500/70 dark:bg-sky-950/70 dark:text-sky-100 dark:ring-sky-500/45";
-
-  const exportMeta: Record<ExportFormat, { label: string }> = {
-    svg: { label: "SVG" },
-    png: { label: "PNG" },
-    pdf: { label: "PDF" },
-  };
 
   return (
     <div className="flex h-full min-h-0 gap-4 overflow-hidden">
@@ -254,20 +273,6 @@ export function SipocEditor({ docId }: SipocEditorProps) {
               </Button>
             </div>
           </div>
-
-          <input
-            className="hidden"
-            ref={fileInputRef}
-            type="file"
-            accept=".xml,application/xml,text/xml"
-            onChange={async (event) => {
-              const input = event.currentTarget;
-              const file = input.files?.[0];
-              if (!file) return;
-              await handleLoadXml(file);
-              input.value = "";
-            }}
-          />
 
           <div className={headerCollapsed ? "hidden" : undefined}>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -379,58 +384,17 @@ export function SipocEditor({ docId }: SipocEditorProps) {
           <Button
             variant="outline"
             size="sm"
-            className="justify-start border-sky-300 text-sky-700 hover:bg-sky-50"
-            onClick={downloadXml}
-          >
-            <Download className="mr-2 size-4" /> Descargar XML
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start border-amber-300 text-amber-700 hover:bg-amber-50"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <FileUp className="mr-2 size-4" /> Cargar XML
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             className="justify-start border-rose-300 text-rose-700 hover:bg-rose-50"
             onClick={resetDiagram}
           >
             <RotateCcw className="mr-2 size-4" /> Reiniciar
           </Button>
-
-          <div className="flex items-center gap-2 rounded-md border border-border/80 px-2 py-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Exportar
-            </span>
-            <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as ExportFormat)}>
-              <SelectTrigger size="sm" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="svg">SVG</SelectItem>
-                <SelectItem value="png">PNG</SelectItem>
-                <SelectItem value="pdf">PDF</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-              onClick={() => handleExport(exportFormat)}
-              disabled={isExporting}
-            >
-              {isExporting ? "Exportando..." : exportMeta[exportFormat].label}
-            </Button>
-          </div>
         </footer>
 
         {/* Hidden export area */}
         <section className="pointer-events-none fixed left-[-10000px] top-0" aria-hidden>
           <div ref={exportAreaRef}>
-            <ExportDiagram diagram={current} pathLabels={pathLabels} />
+            <ExportDiagram diagram={current} pathLabels={pathLabels} options={exportOptions} />
           </div>
         </section>
       </div>

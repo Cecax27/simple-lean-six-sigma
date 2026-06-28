@@ -23,7 +23,7 @@ export const TOOLS: ToolDescriptor[] = [
     descriptionEs:
       "Diagrama de causa-efecto (espina de pescado) para analisis de raiz de problemas.",
     hrefBase: "/ishikawa",
-    status: "soon",
+    status: "ready",
   },
   {
     id: "pareto",
