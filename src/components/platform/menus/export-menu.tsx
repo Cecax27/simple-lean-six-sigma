@@ -205,17 +205,24 @@ function ExportDialogContent({
   onClose: () => void;
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.4);
 
   const sizePx = options.size.unit === "cm" ? cmToPx(options.size.value) : options.size.value;
 
   const computeScale = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const availableWidth = canvas.clientWidth;
-    if (availableWidth <= 0) return;
-    const computed = availableWidth / sizePx;
-    setScale(Math.min(computed, 1));
+    const preview = previewRef.current;
+    if (!canvas || !preview) return;
+    const availW = canvas.clientWidth;
+    const availH = canvas.clientHeight;
+    if (availW <= 0 || availH <= 0) return;
+    const contentW = preview.offsetWidth || sizePx;
+    const contentH = preview.scrollHeight;
+    if (contentH <= 0) return;
+    const scaleW = availW / contentW;
+    const scaleH = availH / contentH;
+    setScale(Math.min(scaleW, scaleH, 1));
   }, [sizePx]);
 
   useEffect(() => {
@@ -229,6 +236,14 @@ function ExportDialogContent({
     observer.observe(canvas);
     return () => observer.disconnect();
   }, [computeScale]);
+
+  useEffect(() => {
+    const preview = previewRef.current;
+    if (!preview) return;
+    const observer = new ResizeObserver(() => computeScale());
+    observer.observe(preview);
+    return () => observer.disconnect();
+  }, [computeScale, previewKey]);
 
   const sizeSelectValue = (() => {
     const preset = SIZE_PRESETS.find(
@@ -254,6 +269,7 @@ function ExportDialogContent({
             className="relative flex min-h-0 flex-1 overflow-hidden rounded-lg border bg-muted/30"
           >
             <div
+              ref={previewRef}
               key={previewKey}
               className="absolute"
               style={{

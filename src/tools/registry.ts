@@ -1,4 +1,4 @@
-export type ToolId = "sipoc" | "ishikawa" | "pareto" | "cinco-porques" | "dmaic";
+export type ToolId = "sipoc" | "ishikawa" | "ctq" | "pareto" | "cinco-porques" | "dmaic";
 
 export interface ToolDescriptor {
   id: ToolId;
@@ -23,6 +23,14 @@ export const TOOLS: ToolDescriptor[] = [
     descriptionEs:
       "Diagrama de causa-efecto (espina de pescado) para analisis de raiz de problemas.",
     hrefBase: "/ishikawa",
+    status: "ready",
+  },
+  {
+    id: "ctq",
+    nameEs: "Arbol CTQ",
+    descriptionEs:
+      "Arbol de necesidades criticas del cliente, impulsores y requisitos (Critical-to-Quality) en formato horizontal.",
+    hrefBase: "/ctq",
     status: "ready",
   },
   {
