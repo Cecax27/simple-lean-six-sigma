@@ -2,6 +2,9 @@
 
 import { jsPDF } from "jspdf";
 import { toPng, toSvg } from "html-to-image";
+import type { SIPOCDiagram } from "@/tools/sipoc/types";
+import type { ExportOptions } from "@/lib/export/types";
+import { renderSipocToSvg } from "@/lib/export/native-svg";
 
 function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
@@ -14,40 +17,83 @@ function downloadBlob(filename: string, blob: Blob): void {
   URL.revokeObjectURL(url);
 }
 
-function safeName(name: string): string {
+function safeName(name: string, fallback = "diagrama"): string {
   const normalized = name.trim().toLowerCase().replace(/\s+/g, "-");
-  return normalized.replace(/[^a-z0-9-_]/g, "") || "diagrama-sipoc";
+  return normalized.replace(/[^a-z0-9-_]/g, "") || fallback;
 }
 
-export async function exportAsSvg(element: HTMLElement, diagramTitle: string): Promise<void> {
-  const dataUrl = await toSvg(element, {
+export interface ExportImageOptions {
+  pixelRatio?: number;
+  backgroundColor?: string;
+  filename?: string;
+}
+
+async function renderElement(
+  element: HTMLElement,
+  opts: { pixelRatio?: number; backgroundColor?: string },
+  renderFn: (el: HTMLElement, opts: { cacheBust: boolean; backgroundColor: string; pixelRatio: number }) => Promise<string>,
+): Promise<string> {
+  const backgroundColor = opts.backgroundColor ?? "#ffffff";
+  const pixelRatio = opts.pixelRatio ?? 2;
+
+  return renderFn(element, {
     cacheBust: true,
-    backgroundColor: "#ffffff",
-    pixelRatio: 2,
+    backgroundColor,
+    pixelRatio,
   });
+}
+
+export async function exportAsSvg(
+  element: HTMLElement,
+  diagramTitle: string,
+  options: ExportImageOptions = {},
+): Promise<void> {
+  const dataUrl = await renderElement(element, options, toSvg);
 
   const response = await fetch(dataUrl);
   const blob = await response.blob();
-  downloadBlob(`${safeName(diagramTitle)}.svg`, blob);
+  const filename = options.filename ?? `${safeName(diagramTitle)}.svg`;
+  downloadBlob(filename, blob);
 }
 
-export async function exportAsPng(element: HTMLElement, diagramTitle: string): Promise<void> {
-  const dataUrl = await toPng(element, {
-    cacheBust: true,
-    backgroundColor: "#ffffff",
-    pixelRatio: 2,
-  });
+export async function exportAsNativeSvg(
+  diagram: SIPOCDiagram,
+  pathLabels: string[],
+  exportOptions: ExportOptions,
+  diagramTitle: string,
+  options: ExportImageOptions = {},
+): Promise<void> {
+  const svg = renderSipocToSvg(diagram, pathLabels, exportOptions);
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const filename = options.filename ?? `${safeName(diagramTitle)}.svg`;
+  downloadBlob(filename, blob);
+}
+
+export async function exportAsPng(
+  element: HTMLElement,
+  diagramTitle: string,
+  options: ExportImageOptions = {},
+): Promise<void> {
+  const dataUrl = await renderElement(element, options, toPng);
 
   const response = await fetch(dataUrl);
   const blob = await response.blob();
-  downloadBlob(`${safeName(diagramTitle)}.png`, blob);
+  const filename = options.filename ?? `${safeName(diagramTitle)}.png`;
+  downloadBlob(filename, blob);
 }
 
-export async function exportAsPdf(element: HTMLElement, diagramTitle: string): Promise<void> {
+export async function exportAsPdf(
+  element: HTMLElement,
+  diagramTitle: string,
+  options: ExportImageOptions = {},
+): Promise<void> {
+  const pixelRatio = options.pixelRatio ?? 2;
+  const backgroundColor = options.backgroundColor ?? "#ffffff";
+
   const pngDataUrl = await toPng(element, {
     cacheBust: true,
-    backgroundColor: "#ffffff",
-    pixelRatio: 2,
+    backgroundColor,
+    pixelRatio,
   });
 
   const img = new Image();
@@ -77,5 +123,6 @@ export async function exportAsPdf(element: HTMLElement, diagramTitle: string): P
   const y = (pageHeight - renderHeight) / 2;
 
   pdf.addImage(pngDataUrl, "PNG", x, y, renderWidth, renderHeight);
-  pdf.save(`${safeName(diagramTitle)}.pdf`);
+  const filename = options.filename ?? `${safeName(diagramTitle)}.pdf`;
+  pdf.save(filename);
 }
