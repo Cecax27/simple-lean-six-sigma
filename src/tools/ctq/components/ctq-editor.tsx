@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ctqTooltips } from "@/tools/ctq/ctq-tooltips";
-import { exportAsPdf, exportAsPng, exportCtqAsSvg } from "@/lib/export/client-export";
+import { exportAsPdf, exportAsPng, exportAsSvg } from "@/lib/export/client-export";
 import type { ExportFormat, ExportOptions } from "@/lib/export/types";
 import { serializeToXml, parseFromXml } from "@/tools/ctq/xml";
 import { ctqExportLayouts, ctqExportFields } from "@/tools/ctq/types";
@@ -170,7 +170,7 @@ export function CtqEditor({ docId }: CtqEditorProps) {
           } else if (format === "pdf") {
             await exportAsPdf(exportAreaRef.current, root.title);
           } else {
-            await exportCtqAsSvg(root, _opts, root.title);
+            await exportAsSvg(exportAreaRef.current, root.title);
           }
           pushFeedback("success", `Exportacion ${format.toUpperCase()} completada.`);
         } catch (error) {

@@ -3,10 +3,8 @@
 import { jsPDF } from "jspdf";
 import { toPng, toSvg } from "html-to-image";
 import type { SIPOCDiagram } from "@/tools/sipoc/types";
-import type { CTQTree } from "@/tools/ctq/types";
 import type { ExportOptions } from "@/lib/export/types";
 import { renderSipocToSvg } from "@/lib/export/native-svg";
-import { renderCtqToSvg } from "@/lib/export/ctq-native-svg";
 
 function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
@@ -68,18 +66,6 @@ export async function exportAsNativeSvg(
   const svg = renderSipocToSvg(diagram, pathLabels, exportOptions);
   const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
   const filename = options.filename ?? `${safeName(diagramTitle)}.svg`;
-  downloadBlob(filename, blob);
-}
-
-export async function exportCtqAsSvg(
-  tree: CTQTree,
-  exportOptions: ExportOptions,
-  title: string,
-  options: ExportImageOptions = {},
-): Promise<void> {
-  const svg = renderCtqToSvg(tree, exportOptions);
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const filename = options.filename ?? `${safeName(title)}.svg`;
   downloadBlob(filename, blob);
 }
 

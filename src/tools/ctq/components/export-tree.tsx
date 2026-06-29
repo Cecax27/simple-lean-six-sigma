@@ -9,13 +9,12 @@ interface ExportTreeProps {
   options: ExportOptions;
 }
 
-function adjustTextColor(hex: string): string {
+function hexBrightness(hex: string): number {
   const h = hex.replace("#", "");
   const r = parseInt(h.substring(0, 2), 16);
   const g = parseInt(h.substring(2, 4), 16);
   const b = parseInt(h.substring(4, 6), 16);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  return brightness < 128 ? "#18181b" : "#fafafa";
+  return (r * 299 + g * 587 + b * 114) / 1000;
 }
 
 function rgba(hex: string, alpha: number): string {
@@ -56,6 +55,35 @@ const COL_W = 220;
 const COL_GAP = 48; // gap between columns, room for arrows
 const BODY_PADDING = 20;
 
+const CARD_FONT_SIZE = 13;
+const CARD_LINE_HEIGHT = Math.round(CARD_FONT_SIZE * 1.35);
+const CARD_PAD_X = 12;
+const CARD_PAD_Y = 8;
+
+function estimateLines(label: string, width: number): number {
+  if (!label) return 1;
+  const innerW = width - 2 * CARD_PAD_X;
+  const charsPerLine = Math.max(8, Math.floor(innerW / (CARD_FONT_SIZE * 0.55)));
+  const words = label.split(/\s+/);
+  let lines = 1;
+  let current = 0;
+  for (const word of words) {
+    const add = word.length + (current > 0 ? 1 : 0);
+    if (current + add > charsPerLine && current > 0) {
+      lines += 1;
+      current = word.length;
+    } else {
+      current += add;
+    }
+  }
+  return Math.max(1, lines);
+}
+
+function cardHeight(label: string, width: number): number {
+  const lines = estimateLines(label, width);
+  return Math.max(ITEM_H, lines * CARD_LINE_HEIGHT + 2 * CARD_PAD_Y);
+}
+
 function computeLayout(tree: CTQTree): {
   needs: RenderedNeed[];
   totalHeight: number;
@@ -89,29 +117,50 @@ function computeLayout(tree: CTQTree): {
       let reqY = 0;
 
       for (const req of reqs) {
+        const reqHeight = cardHeight(req.label, COL_W);
         renderedReqs.push({
           reqId: req.id,
           reqLabel: req.label,
           reqTop: reqY,
-          reqHeight: ITEM_H,
+          reqHeight,
         });
-        reqY += ITEM_H + ITEM_GAP;
+        reqY += reqHeight + ITEM_GAP;
       }
 
-      const driverHeight = Math.max(ITEM_H, reqY - ITEM_GAP);
+      const reqBlockH = reqY - ITEM_GAP;
+      const driverHeight = Math.max(
+        cardHeight(driver.label, COL_W),
+        reqBlockH,
+      );
+      const reqCentering = (driverHeight - reqBlockH) / 2;
+
+      for (const r of renderedReqs) {
+        r.reqTop += reqCentering;
+      }
+
+      const driverTop = needDriverY;
+      needDriverY += driverHeight + ITEM_GAP;
 
       renderedDrivers.push({
         driverId: driver.id,
         driverLabel: driver.label || "",
-        driverTop: needDriverY,
+        driverTop,
         driverHeight,
         requirements: renderedReqs,
       });
-
-      needDriverY += driverHeight + ITEM_GAP;
     }
 
-    const needHeight = Math.max(ITEM_H, needDriverY - ITEM_GAP);
+    const driversBlockH = needDriverY - ITEM_GAP;
+    const needHeight = Math.max(
+      cardHeight(need.label, COL_W),
+      driversBlockH,
+    );
+    const driverCentering = (needHeight - driversBlockH) / 2;
+
+    for (const d of renderedDrivers) {
+      d.driverTop += driverCentering;
+    }
+
     const needCenterY = needHeight / 2;
 
     const connectorNeeds: { fromY: number; toY: number }[] = [];
@@ -171,9 +220,9 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
   const textClr = colors.text;
   const bgClr = colors.background;
   const mutedClr =
-    adjustTextColor(accentBg) === "#18181b"
-      ? "rgba(24,24,27,0.5)"
-      : "rgba(250,250,250,0.6)";
+    hexBrightness(headerBg) < 128
+      ? "rgba(250,250,250,0.6)"
+      : "rgba(24,24,27,0.55)";
 
   const showTitle = fields.includes("title");
   const showDate = fields.includes("date");
@@ -196,10 +245,13 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
     boxSizing: "border-box",
     display: "flex",
     alignItems: "center",
-    padding: "8px 12px",
-    fontSize: 14,
+    padding: `${CARD_PAD_Y}px ${CARD_PAD_X}px`,
+    fontSize: CARD_FONT_SIZE,
+    lineHeight: `${CARD_LINE_HEIGHT}px`,
     color: textClr,
     overflow: "hidden",
+    whiteSpace: "normal",
+    wordBreak: "break-word",
   };
 
   return (
@@ -345,7 +397,7 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
                   top: need.needTop,
                   width: COL_W,
                   height: need.needHeight,
-                  backgroundColor: accentBg,
+                  backgroundColor: cardBg,
                   borderRadius: isFlat ? 0 : 16,
                   fontWeight: 600,
                   border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
@@ -391,7 +443,7 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
                     top: need.needTop + driver.driverTop,
                     width: COL_W,
                     height: driver.driverHeight,
-                    backgroundColor: accentBg,
+                    backgroundColor: cardBg,
                     borderRadius: isFlat ? 0 : 16,
                     border: isFlat ? undefined : `1px solid ${rgba(cardBg, 0.3)}`,
                     borderBottom: isFlat ? `1px solid ${rgba(cardBg, 0.3)}` : undefined,
@@ -508,7 +560,7 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 0 L 10 5 L 0 10 z" fill={rgba(cardBg, 0.55)} />
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={rgba(accentBg, 0.7)} />
               </marker>
             </defs>
             {layoutData.needs.map((need) =>
@@ -546,7 +598,7 @@ export function ExportTree({ tree, options }: ExportTreeProps) {
                       y1={driverCenterY}
                       x2={rightColLeftEdge}
                       y2={reqCenterY}
-                      stroke={rgba(cardBg, 0.55)}
+                      stroke={rgba(accentBg, 0.7)}
                       strokeWidth={1.5}
                       markerEnd="url(#ctq-arrow-driver-req)"
                     />,
