@@ -5,6 +5,8 @@ import { useEffect, useRef } from "react";
 import { useDocsStore } from "@/store/docs-store";
 import { useProcessMapStore } from "@/tools/mapa-proceso-extendido/store";
 import type { ProcessMap } from "@/tools/mapa-proceso-extendido/types";
+import { ActivityTable } from "@/tools/mapa-proceso-extendido/components/activity-table";
+import { LaneManager } from "@/tools/mapa-proceso-extendido/components/lane-manager";
 
 interface ProcessMapEditorProps {
   docId: string;
@@ -14,6 +16,16 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
   const root = useProcessMapStore((s) => s.root);
   const setTitle = useProcessMapStore((s) => s.setTitle);
   const replaceRoot = useProcessMapStore((s) => s.replaceRoot);
+  const addDepartment = useProcessMapStore((s) => s.addDepartment);
+  const updateDepartment = useProcessMapStore((s) => s.updateDepartment);
+  const removeDepartment = useProcessMapStore((s) => s.removeDepartment);
+  const moveDepartmentUp = useProcessMapStore((s) => s.moveDepartmentUp);
+  const moveDepartmentDown = useProcessMapStore((s) => s.moveDepartmentDown);
+  const addStage = useProcessMapStore((s) => s.addStage);
+  const updateStage = useProcessMapStore((s) => s.updateStage);
+  const removeStage = useProcessMapStore((s) => s.removeStage);
+  const moveStageUp = useProcessMapStore((s) => s.moveStageUp);
+  const moveStageDown = useProcessMapStore((s) => s.moveStageDown);
 
   const getDocData = useDocsStore((s) => s.getDocData);
   const setDocData = useDocsStore((s) => s.setDocData);
@@ -55,13 +67,28 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
         />
       </div>
 
-      <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-        <p className="text-sm">Editor del mapa de proceso</p>
-        <p className="text-xs mt-1">
-          Las secciones de departamentos, etapas, actividades y diagrama se
-          implementarán próximamente.
-        </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <LaneManager
+          title="Departamentos (columnas)"
+          items={root.departments}
+          onAdd={addDepartment}
+          onUpdate={updateDepartment}
+          onRemove={removeDepartment}
+          onMoveUp={moveDepartmentUp}
+          onMoveDown={moveDepartmentDown}
+        />
+        <LaneManager
+          title="Etapas (filas)"
+          items={root.stages}
+          onAdd={addStage}
+          onUpdate={updateStage}
+          onRemove={removeStage}
+          onMoveUp={moveStageUp}
+          onMoveDown={moveStageDown}
+        />
       </div>
+
+      <ActivityTable />
     </div>
   );
 }

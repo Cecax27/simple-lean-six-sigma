@@ -19,10 +19,14 @@ interface ProcessMapStore extends ProcessMapState {
   removeDepartment: (id: string) => void;
   updateDepartment: (id: string, name: string) => void;
   reorderDepartments: (ids: string[]) => void;
+  moveDepartmentUp: (id: string) => void;
+  moveDepartmentDown: (id: string) => void;
   addStage: (name: string) => void;
   removeStage: (id: string) => void;
   updateStage: (id: string, name: string) => void;
   reorderStages: (ids: string[]) => void;
+  moveStageUp: (id: string) => void;
+  moveStageDown: (id: string) => void;
   addActivity: (data: {
     stageId: string;
     departmentId: string;
@@ -99,6 +103,26 @@ export const useProcessMapStore = create<ProcessMapStore>((set) => ({
     });
   },
 
+  moveDepartmentUp: (id) => {
+    set((state) => {
+      const idx = state.root.departments.findIndex((d) => d.id === id);
+      if (idx <= 0) return state;
+      const list = [...state.root.departments];
+      [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+      return { root: { ...state.root, departments: list } };
+    });
+  },
+
+  moveDepartmentDown: (id) => {
+    set((state) => {
+      const idx = state.root.departments.findIndex((d) => d.id === id);
+      if (idx < 0 || idx >= state.root.departments.length - 1) return state;
+      const list = [...state.root.departments];
+      [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
+      return { root: { ...state.root, departments: list } };
+    });
+  },
+
   addStage: (name) => {
     set((state) => ({
       root: {
@@ -137,6 +161,26 @@ export const useProcessMapStore = create<ProcessMapStore>((set) => ({
           stages: ids.map((id) => lookup.get(id)!),
         },
       };
+    });
+  },
+
+  moveStageUp: (id) => {
+    set((state) => {
+      const idx = state.root.stages.findIndex((s) => s.id === id);
+      if (idx <= 0) return state;
+      const list = [...state.root.stages];
+      [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+      return { root: { ...state.root, stages: list } };
+    });
+  },
+
+  moveStageDown: (id) => {
+    set((state) => {
+      const idx = state.root.stages.findIndex((s) => s.id === id);
+      if (idx < 0 || idx >= state.root.stages.length - 1) return state;
+      const list = [...state.root.stages];
+      [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
+      return { root: { ...state.root, stages: list } };
     });
   },
 
