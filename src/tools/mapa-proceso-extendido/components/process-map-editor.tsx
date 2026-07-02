@@ -49,13 +49,18 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
   const { registerToolMenus } = useToolMenus();
 
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [flowchartVersion, setFlowchartVersion] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
   const loadedRef = useRef(false);
 
   useEffect(() => {
     if (loadedRef.current) return;
     const data = getDocData(docId);
-    if (data) replaceRoot(data as ProcessMap);
+    if (data) {
+      replaceRoot(data as ProcessMap);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFlowchartVersion((v) => v + 1);
+    }
     loadedRef.current = true;
   }, [docId, getDocData, replaceRoot]);
 
@@ -119,6 +124,7 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
         const text = await file.text();
         const diagram = parseFromXml(text);
         replaceRoot(diagram);
+        setFlowchartVersion((v) => v + 1);
         setFeedback({ type: "success", message: "Archivo XML cargado correctamente." });
       } catch {
         setFeedback({
@@ -150,6 +156,7 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
   function handleGenerate() {
     const layout = generateLayout(root);
     setFlowchart(layout);
+    setFlowchartVersion((v) => v + 1);
     setViewMode("diagram");
     setFeedback({ type: "success", message: "Diagrama generado correctamente." });
   }
@@ -157,6 +164,7 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
   function handleRegenerate() {
     const layout = generateLayout(root);
     setFlowchart(layout);
+    setFlowchartVersion((v) => v + 1);
     setFeedback({ type: "success", message: "Diagrama regenerado (se descartaron las modificaciones manuales)." });
   }
 
@@ -283,6 +291,7 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
                 departments={root.departments}
                 stages={root.stages}
                 activities={root.activities}
+                version={flowchartVersion}
               />
             </>
           )}

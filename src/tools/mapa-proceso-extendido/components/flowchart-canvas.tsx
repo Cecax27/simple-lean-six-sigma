@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  applyNodeChanges,
   Background,
   Controls,
   ReactFlow,
   useViewport,
   type Edge,
   type Node,
+  type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -18,6 +20,7 @@ import {
   LANE_HEADER_WIDTH,
   ROW_HEIGHT,
 } from "@/tools/mapa-proceso-extendido/layout";
+import { useProcessMapStore } from "@/tools/mapa-proceso-extendido/store";
 import type { Activity, FlowchartData } from "@/tools/mapa-proceso-extendido/types";
 
 interface FlowchartCanvasProps {
@@ -25,6 +28,7 @@ interface FlowchartCanvasProps {
   departments: { id: string; name: string }[];
   stages: { id: string; name: string }[];
   activities: Activity[];
+  version: number;
 }
 
 export function FlowchartCanvas({
@@ -32,7 +36,10 @@ export function FlowchartCanvas({
   departments,
   stages,
   activities,
+  version,
 }: FlowchartCanvasProps) {
+  const updateFlowchartNode = useProcessMapStore((s) => s.updateFlowchartNode);
+
   const departmentNames = useMemo(
     () => new Map(departments.map((d) => [d.id, d.name])),
     [departments],
@@ -46,7 +53,7 @@ export function FlowchartCanvas({
     [activities],
   );
 
-  const nodes: Node<ProcessMapNodeData>[] = useMemo(
+  const computedNodes = useMemo<Node<ProcessMapNodeData>[]>(
     () =>
       flowchart.nodes.map((fn) => {
         const act = activityMap.get(fn.id);
@@ -63,7 +70,7 @@ export function FlowchartCanvas({
     [flowchart.nodes, activityMap],
   );
 
-  const edges: Edge[] = useMemo(
+  const computedEdges = useMemo<Edge[]>(
     () =>
       flowchart.edges.map((e) => ({
         id: e.id,
@@ -72,24 +79,49 @@ export function FlowchartCanvas({
         label: e.label,
         animated: false,
         style: { strokeWidth: 1.5 },
-        markerEnd: { type: "arrowclosed" as const, width: 14, height: 14 },
+        markerEnd: { type: "arrowclosed" as const },
       })),
     [flowchart.edges],
+  );
+
+  const [rfNodes, setRfNodes] = useState<Node[]>(computedNodes);
+  const [rfEdges, setRfEdges] = useState<Edge[]>(computedEdges);
+  const prevVersion = useRef(version);
+
+  useEffect(() => {
+    if (version !== prevVersion.current) {
+      prevVersion.current = version;
+      setRfNodes(computedNodes);
+      setRfEdges(computedEdges);
+    }
+  }, [version, computedNodes, computedEdges]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setRfNodes((nds) => applyNodeChanges(changes, nds) as Node[]);
+  }, []);
+
+  const onNodeDragStop = useCallback(
+    (_event: MouseEvent | TouchEvent, node: Node) => {
+      updateFlowchartNode(node.id, node.position);
+    },
+    [updateFlowchartNode],
   );
 
   return (
     <div className="h-[600px] w-full rounded-lg border overflow-hidden">
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        key={version}
+        nodes={rfNodes}
+        edges={rfEdges}
         nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onNodeDragStop={onNodeDragStop}
         fitView
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}
         maxZoom={2}
-        nodesDraggable={false}
+        nodesDraggable
         nodesConnectable={false}
-        elementsSelectable={false}
       >
         <SwimlaneBackground
           flowchart={flowchart}
