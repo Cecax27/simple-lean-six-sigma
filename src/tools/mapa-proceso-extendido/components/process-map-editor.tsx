@@ -1,18 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowRightLeft, CheckCircle, Play, X } from "lucide-react";
+import { AlertTriangle, ArrowRightLeft, CheckCircle, Download, Play, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useDocsStore } from "@/store/docs-store";
 import { serializeToXml, parseFromXml } from "@/tools/mapa-proceso-extendido/xml";
 import { generateLayout } from "@/tools/mapa-proceso-extendido/layout";
 import { useProcessMapStore } from "@/tools/mapa-proceso-extendido/store";
+import { processMapExportLayouts, processMapExportFields } from "@/tools/mapa-proceso-extendido/types";
 import type { ProcessMap } from "@/tools/mapa-proceso-extendido/types";
 import { ActivityTable } from "@/tools/mapa-proceso-extendido/components/activity-table";
 import { FlowchartCanvas } from "@/tools/mapa-proceso-extendido/components/flowchart-canvas";
 import { LaneManager } from "@/tools/mapa-proceso-extendido/components/lane-manager";
-import { useToolMenus, type FileDescriptor } from "@/components/platform/tool-menus-context";
+import {
+  exportMapAsPdf,
+  exportMapAsPng,
+  exportMapAsSvg,
+  exportMapAsCsv,
+  renderProcessMapToSvg,
+} from "@/tools/mapa-proceso-extendido/native-svg";
+import { useToolMenus, type FileDescriptor, type ExportDescriptor } from "@/components/platform/tool-menus-context";
+import type { ExportFormat, ExportOptions } from "@/lib/export/types";
 
 type ViewMode = "table" | "diagram";
 
@@ -148,10 +157,40 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
     [docId, docTitle, downloadXml, handleLoadXml],
   );
 
+  const exportDescriptor = useMemo<ExportDescriptor | null>(() => {
+    if (!root.flowchart) return null;
+
+    return {
+      docId,
+      toolId: "mapa-proceso-extendido",
+      title: docTitle,
+      layouts: processMapExportLayouts,
+      fields: processMapExportFields,
+      formats: ["svg", "png", "pdf"],
+      renderPreview: (opts: ExportOptions) => (
+        <div
+          className="w-full overflow-hidden [&>svg]:w-full [&>svg]:h-auto"
+          dangerouslySetInnerHTML={{
+            __html: renderProcessMapToSvg(root, opts),
+          }}
+        />
+      ),
+      export: async (format: ExportFormat, opts: ExportOptions) => {
+        if (format === "svg") {
+          await exportMapAsSvg(root, opts);
+        } else if (format === "png") {
+          await exportMapAsPng(root, opts);
+        } else if (format === "pdf") {
+          await exportMapAsPdf(root, opts);
+        }
+      },
+    };
+  }, [docId, docTitle, root]);
+
   useEffect(() => {
-    registerToolMenus(null, fileDescriptor);
+    registerToolMenus(exportDescriptor, fileDescriptor);
     return () => registerToolMenus(null, null);
-  }, [fileDescriptor, registerToolMenus]);
+  }, [exportDescriptor, fileDescriptor, registerToolMenus]);
 
   function handleGenerate() {
     const layout = generateLayout(root);
@@ -263,6 +302,23 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
           </div>
 
           <ActivityTable />
+
+          {root.activities.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => {
+                  exportMapAsCsv(root);
+                  setFeedback({ type: "success", message: "Archivo CSV descargado correctamente." });
+                }}
+              >
+                <Download className="size-3.5" />
+                Exportar CSV
+              </Button>
+            </div>
+          )}
         </>
       ) : (
         <>
