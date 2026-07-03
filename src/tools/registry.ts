@@ -1,4 +1,11 @@
-export type ToolId = "sipoc" | "ishikawa" | "ctq" | "pareto" | "cinco-porques" | "dmaic";
+export type ToolId =
+  | "sipoc"
+  | "ishikawa"
+  | "ctq"
+  | "mapa-proceso-extendido"
+  | "pareto"
+  | "cinco-porques"
+  | "dmaic";
 
 export interface ToolDescriptor {
   id: ToolId;
@@ -31,6 +38,14 @@ export const TOOLS: ToolDescriptor[] = [
     descriptionEs:
       "Arbol de necesidades criticas del cliente, impulsores y requisitos (Critical-to-Quality) en formato horizontal.",
     hrefBase: "/ctq",
+    status: "ready",
+  },
+  {
+    id: "mapa-proceso-extendido",
+    nameEs: "Mapa de Proceso Extendido",
+    descriptionEs:
+      "Diagrama de flujo multicarril por departamento y etapa con edición interactiva.",
+    hrefBase: "/mapa-proceso-extendido",
     status: "ready",
   },
   {
