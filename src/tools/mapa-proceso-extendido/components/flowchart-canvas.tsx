@@ -108,7 +108,7 @@ export function FlowchartCanvas({
   );
 
   return (
-    <div className="h-[600px] w-full rounded-lg border overflow-hidden">
+    <div className="h-[600px] w-full rounded-lg border overflow-hidden [--xy-controls-button-background-color:hsl(var(--card))] [--xy-controls-button-background-color-hover:hsl(var(--accent))] [--xy-controls-button-color:hsl(var(--foreground))] [--xy-controls-button-border-color:hsl(var(--border))]">
       <ReactFlow
         key={version}
         nodes={rfNodes}
@@ -128,6 +128,7 @@ export function FlowchartCanvas({
           departmentNames={departmentNames}
           stageNames={stageNames}
         />
+        <Background gap={20} size={1} color="hsl(var(--border))" />
         <Background gap={20} size={1} color="hsl(var(--border))" />
         <Controls position="bottom-right" />
       </ReactFlow>
