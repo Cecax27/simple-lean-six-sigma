@@ -122,6 +122,7 @@ export function FlowchartCanvas({
         maxZoom={2}
         nodesDraggable
         nodesConnectable={false}
+        proOptions={{ hideAttribution: true }}
       >
         <SwimlaneBackground
           flowchart={flowchart}
