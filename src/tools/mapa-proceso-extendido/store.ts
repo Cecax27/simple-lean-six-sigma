@@ -215,10 +215,10 @@ export const useProcessMapStore = create<ProcessMapStore>((set) => ({
             ? {
                 ...a,
                 ...data,
-                name: data.name !== undefined ? data.name.trim() : a.name,
+                name: data.name !== undefined ? data.name : a.name,
                 description:
                   data.description !== undefined
-                    ? data.description.trim()
+                    ? data.description
                     : a.description,
               }
             : a,

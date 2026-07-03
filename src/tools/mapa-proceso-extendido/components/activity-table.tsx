@@ -163,6 +163,7 @@ function ActivityRow({
           type="text"
           value={activity.name}
           onChange={(e) => onUpdate({ name: e.target.value })}
+          onBlur={(e) => onUpdate({ name: e.target.value.trim() })}
           placeholder="Nombre de la actividad"
           className="w-full h-7 rounded border border-input bg-background px-1.5 text-xs"
         />
@@ -172,6 +173,7 @@ function ActivityRow({
           type="text"
           value={activity.description ?? ""}
           onChange={(e) => onUpdate({ description: e.target.value })}
+          onBlur={(e) => onUpdate({ description: e.target.value.trim() })}
           placeholder="Descripción"
           className="w-full h-7 rounded border border-input bg-background px-1.5 text-xs min-w-[120px]"
         />
