@@ -33,7 +33,6 @@ interface ProcessMapStore extends ProcessMapState {
     name: string;
     description?: string;
     type: ActivityType;
-    previousIds: string[];
     nextIds: string[];
   }) => void;
   updateActivity: (id: string, data: Partial<Omit<Activity, "id">>) => void;
@@ -198,7 +197,6 @@ export const useProcessMapStore = create<ProcessMapStore>((set) => ({
             name: data.name.trim(),
             description: data.description?.trim(),
             type: data.type,
-            previousIds: data.previousIds,
             nextIds: data.nextIds,
           },
         ],

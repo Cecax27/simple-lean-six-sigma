@@ -22,7 +22,6 @@ export function serializeToCsv(map: ProcessMap): string {
     "Nombre",
     "Descripción",
     "Tipo",
-    "Actividades Previas",
     "Actividades Siguientes",
   ];
 
@@ -32,7 +31,6 @@ export function serializeToCsv(map: ProcessMap): string {
   const rows = map.activities.map((act) => {
     const stage = stageNames.get(act.stageId) ?? act.stageId;
     const dept = departmentNames.get(act.departmentId) ?? act.departmentId;
-    const prev = act.previousIds.join(";");
     const next = act.nextIds.join(";");
     const typeLabel = ACTIVITY_TYPE_LABELS[act.type] ?? act.type;
 
@@ -43,7 +41,6 @@ export function serializeToCsv(map: ProcessMap): string {
       act.name,
       act.description ?? "",
       typeLabel,
-      prev,
       next,
     ].map(escapeCsvField);
   });

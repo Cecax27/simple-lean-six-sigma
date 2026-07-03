@@ -93,7 +93,7 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
     const deps = root.departments.map((d) => `${d.id}:${d.name}`).join(",");
     const stgs = root.stages.map((s) => `${s.id}:${s.name}`).join(",");
     const acts = root.activities
-      .map((a) => `${a.id}:${a.name}:${a.type}:${a.stageId}:${a.departmentId}:${a.previousIds.join(".")}:${a.nextIds.join(".")}`)
+      .map((a) => `${a.id}:${a.name}:${a.type}:${a.stageId}:${a.departmentId}:${a.nextIds.join(".")}`)
       .join(";");
     return `${root.nextActivityId}|${deps}|${stgs}|${acts}`;
   }, [root.nextActivityId, root.departments, root.stages, root.activities]);

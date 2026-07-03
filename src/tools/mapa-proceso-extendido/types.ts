@@ -19,7 +19,6 @@ export interface Activity {
   stageId: string;
   departmentId: string;
   type: ActivityType;
-  previousIds: string[];
   nextIds: string[];
 }
 

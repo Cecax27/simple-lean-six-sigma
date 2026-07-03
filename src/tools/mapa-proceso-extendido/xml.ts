@@ -35,11 +35,6 @@ const stagesNodeSchema = z.union([
   z.string(),
 ]);
 
-const previousIdsNodeSchema = z.union([
-  z.object({ id: z.union([z.string(), z.array(z.string())]).optional() }),
-  z.string(),
-]);
-
 const nextIdsNodeSchema = z.union([
   z.object({ id: z.union([z.string(), z.array(z.string())]).optional() }),
   z.string(),
@@ -52,7 +47,6 @@ const activitySchema = z.object({
   stageId: z.string(),
   departmentId: z.string(),
   type: z.enum(["start", "process", "decision", "end"]),
-  previousIds: previousIdsNodeSchema.optional(),
   nextIds: nextIdsNodeSchema.optional(),
 });
 
@@ -150,7 +144,6 @@ function mapActivity(raw: {
   stageId: string;
   departmentId: string;
   type: string;
-  previousIds?: unknown;
   nextIds?: unknown;
 }): Activity {
   return {
@@ -160,7 +153,6 @@ function mapActivity(raw: {
     stageId: raw.stageId,
     departmentId: raw.departmentId,
     type: raw.type as Activity["type"],
-    previousIds: readIds(raw.previousIds),
     nextIds: readIds(raw.nextIds),
   };
 }
@@ -268,7 +260,6 @@ function activitiesNode(activities: Activity[]): { activity?: Array<Record<strin
       stageId: a.stageId,
       departmentId: a.departmentId,
       type: a.type,
-      previousIds: idsNode(a.previousIds),
       nextIds: idsNode(a.nextIds),
     })),
   };

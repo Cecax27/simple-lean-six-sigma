@@ -35,7 +35,6 @@ export function ActivityTable() {
       departmentId: departments[0].id,
       name: "",
       type: "process",
-      previousIds: [],
       nextIds: [],
     });
   }
@@ -73,7 +72,6 @@ export function ActivityTable() {
                 <Th>Nombre</Th>
                 <Th>Descripción</Th>
                 <Th>Tipo</Th>
-                <Th>Previo</Th>
                 <Th>Siguiente</Th>
                 <Th className="w-10" />
               </tr>
@@ -126,7 +124,7 @@ function ActivityRow({
   departments: ReturnType<typeof useProcessMapStore.getState>["root"]["departments"];
   stages: ReturnType<typeof useProcessMapStore.getState>["root"]["stages"];
   allActivities: ReturnType<typeof useProcessMapStore.getState>["root"]["activities"];
-  onUpdate: (data: Partial<{ name: string; description: string; stageId: string; departmentId: string; type: ActivityType; previousIds: string[]; nextIds: string[] }>) => void;
+  onUpdate: (data: Partial<{ name: string; description: string; stageId: string; departmentId: string; type: ActivityType; nextIds: string[] }>) => void;
   onRemove: () => void;
 }) {
   return (
@@ -190,13 +188,6 @@ function ActivityRow({
             </option>
           ))}
         </select>
-      </Td>
-      <Td>
-        <MultiSelectCell
-          selectedIds={activity.previousIds}
-          options={allActivities.filter((a) => a.id !== activity.id)}
-          onChange={(ids) => onUpdate({ previousIds: ids })}
-        />
       </Td>
       <Td>
         <MultiSelectCell
