@@ -13,8 +13,6 @@ import type {
 
 // ── Zod schemas ────────────────────────────────────────────────────────
 
-const idListSchema = z.union([z.string(), z.array(z.string())]).optional();
-
 const departmentSchema = z.object({
   "@_id": z.string(),
   name: z.string(),
