@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -240,19 +241,24 @@ function MultiSelectCell({
   onChange: (ids: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (popupRef.current?.contains(target)) return;
+      close();
     }
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [open]);
+  }, [open, close]);
 
   const selectedLabels = selectedIds
     .map((id) => options.find((o) => o.id === id)?.name ?? `ID ${id}`)
@@ -266,11 +272,64 @@ function MultiSelectCell({
     }
   }
 
+  function handleOpen() {
+    if (open) {
+      close();
+      return;
+    }
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const popupHeight = Math.min(192, options.length * 32 + 4);
+      const openDown = spaceBelow >= popupHeight || spaceBelow > spaceAbove;
+
+      setPopupStyle({
+        position: "fixed",
+        top: openDown ? rect.bottom + 4 : rect.top - popupHeight - 4,
+        left: Math.max(4, Math.min(rect.left, window.innerWidth - 228)),
+        width: 224,
+        zIndex: 100,
+      });
+    }
+    setOpen(true);
+  }
+
+  const popup = open && createPortal(
+    <div
+      ref={popupRef}
+      style={popupStyle}
+      className="rounded-md border bg-popover shadow-md p-1 max-h-48 overflow-y-auto"
+    >
+      {options.length === 0 && (
+        <p className="text-xs text-muted-foreground p-2">
+          No hay otras actividades
+        </p>
+      )}
+      {options.map((opt) => (
+        <label
+          key={opt.id}
+          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-xs"
+        >
+          <Checkbox
+            checked={selectedIds.includes(opt.id)}
+            onCheckedChange={() => toggle(opt.id)}
+          />
+          <span className="truncate">
+            {opt.id} — {opt.name || "(sin nombre)"}
+          </span>
+        </label>
+      ))}
+    </div>,
+    document.body,
+  );
+
   return (
-    <div ref={ref} className="relative">
+    <div>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={handleOpen}
         className="w-full h-7 rounded border border-input bg-background px-1.5 text-xs text-left truncate cursor-pointer hover:bg-muted/50 min-w-[80px]"
       >
         {selectedIds.length === 0 ? (
@@ -279,29 +338,7 @@ function MultiSelectCell({
           <span>{selectedLabels}</span>
         )}
       </button>
-      {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 w-56 rounded-md border bg-popover shadow-md p-1 max-h-48 overflow-y-auto">
-          {options.length === 0 && (
-            <p className="text-xs text-muted-foreground p-2">
-              No hay otras actividades
-            </p>
-          )}
-          {options.map((opt) => (
-            <label
-              key={opt.id}
-              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-xs"
-            >
-              <Checkbox
-                checked={selectedIds.includes(opt.id)}
-                onCheckedChange={() => toggle(opt.id)}
-              />
-              <span className="truncate">
-                {opt.id} — {opt.name || "(sin nombre)"}
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
+      {popup}
     </div>
   );
 }
