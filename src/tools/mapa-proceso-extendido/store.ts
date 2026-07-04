@@ -41,6 +41,8 @@ interface ProcessMapStore extends ProcessMapState {
   removeActivity: (id: string) => void;
   setFlowchart: (data: FlowchartData | null) => void;
   updateFlowchartNode: (id: string, position: { x: number; y: number }) => void;
+  setRowHeight: (stageId: string, height: number) => void;
+  setColumnWidth: (deptId: string, width: number) => void;
   markStale: () => void;
 }
 
@@ -301,6 +303,36 @@ export const useProcessMapStore = create<ProcessMapStore>((set) => ({
         root: {
           ...state.root,
           flowchart: { ...state.root.flowchart, stale: true },
+        },
+      };
+    });
+  },
+
+  setRowHeight: (stageId, height) => {
+    set((state) => {
+      if (!state.root.flowchart) return state;
+      return {
+        root: {
+          ...state.root,
+          flowchart: {
+            ...state.root.flowchart,
+            rowHeights: { ...(state.root.flowchart.rowHeights ?? {}), [stageId]: height },
+          },
+        },
+      };
+    });
+  },
+
+  setColumnWidth: (deptId, width) => {
+    set((state) => {
+      if (!state.root.flowchart) return state;
+      return {
+        root: {
+          ...state.root,
+          flowchart: {
+            ...state.root.flowchart,
+            columnWidths: { ...(state.root.flowchart.columnWidths ?? {}), [deptId]: width },
+          },
         },
       };
     });

@@ -101,12 +101,34 @@ const stageOrderNodeSchema = z.union([
   z.string(),
 ]);
 
+const rowHeightSchema = z.object({
+  "@_id": z.string(),
+  "#text": z.number(),
+});
+
+const rowHeightsNodeSchema = z.union([
+  z.object({ row: z.union([rowHeightSchema, z.array(rowHeightSchema)]).optional() }),
+  z.string(),
+]);
+
+const columnWidthSchema = z.object({
+  "@_id": z.string(),
+  "#text": z.number(),
+});
+
+const columnWidthsNodeSchema = z.union([
+  z.object({ col: z.union([columnWidthSchema, z.array(columnWidthSchema)]).optional() }),
+  z.string(),
+]);
+
 const flowchartSchema = z.object({
   departmentOrder: departmentOrderNodeSchema.optional(),
   stageOrder: stageOrderNodeSchema.optional(),
   nodes: flowchartNodesNodeSchema.optional(),
   edges: flowchartEdgesNodeSchema.optional(),
   stale: z.union([z.string(), z.boolean()]).optional(),
+  rowHeights: rowHeightsNodeSchema.optional(),
+  columnWidths: columnWidthsNodeSchema.optional(),
 });
 
 const processMapSchema = z.object({
@@ -134,6 +156,36 @@ function readSection<T>(section: unknown, key: string): T | undefined {
 function readIds(section: unknown): string[] {
   const ids = readSection<unknown>(section, "id");
   return asArray(ids as string);
+}
+
+function readRowHeights(
+  section: unknown,
+): { rowHeights?: Record<string, number> } {
+  const rows = readSection<unknown>(section, "row");
+  if (!rows) return {};
+  const arr = asArray(rows as { "@_id": string; "#text": number });
+  const result: Record<string, number> = {};
+  for (const r of arr) {
+    if (r["@_id"] !== undefined && r["#text"] !== undefined) {
+      result[r["@_id"]] = typeof r["#text"] === "string" ? Number(r["#text"]) : r["#text"];
+    }
+  }
+  return Object.keys(result).length > 0 ? { rowHeights: result } : {};
+}
+
+function readColumnWidths(
+  section: unknown,
+): { columnWidths?: Record<string, number> } {
+  const cols = readSection<unknown>(section, "col");
+  if (!cols) return {};
+  const arr = asArray(cols as { "@_id": string; "#text": number });
+  const result: Record<string, number> = {};
+  for (const c of arr) {
+    if (c["@_id"] !== undefined && c["#text"] !== undefined) {
+      result[c["@_id"]] = typeof c["#text"] === "string" ? Number(c["#text"]) : c["#text"];
+    }
+  }
+  return Object.keys(result).length > 0 ? { columnWidths: result } : {};
 }
 
 // ── Parse mappers ──────────────────────────────────────────────────────
@@ -200,6 +252,8 @@ function mapFlowchart(raw: Record<string, unknown>): FlowchartData {
     nodes?: unknown;
     edges?: unknown;
     stale?: string | boolean;
+    rowHeights?: unknown;
+    columnWidths?: unknown;
   };
 
   return {
@@ -214,6 +268,8 @@ function mapFlowchart(raw: Record<string, unknown>): FlowchartData {
     stale:
       parsed.stale === true ||
       parsed.stale === "true",
+    ...readRowHeights(parsed.rowHeights),
+    ...readColumnWidths(parsed.columnWidths),
   };
 }
 
@@ -320,6 +376,28 @@ function flowchartEdgesNode(edges: FlowchartEdge[]) {
   };
 }
 
+function rowHeightsNode(rowHeights: Record<string, number>): Record<string, unknown> {
+  const entries = Object.entries(rowHeights);
+  if (entries.length === 0) return {};
+  return {
+    row: entries.map(([id, height]) => ({
+      "@_id": id,
+      "#text": height,
+    })),
+  };
+}
+
+function columnWidthsNode(columnWidths: Record<string, number>): Record<string, unknown> {
+  const entries = Object.entries(columnWidths);
+  if (entries.length === 0) return {};
+  return {
+    col: entries.map(([id, width]) => ({
+      "@_id": id,
+      "#text": width,
+    })),
+  };
+}
+
 function flowchartNode(flowchart: FlowchartData): Record<string, unknown> {
   return {
     departmentOrder: idsNode(flowchart.departmentOrder),
@@ -327,6 +405,8 @@ function flowchartNode(flowchart: FlowchartData): Record<string, unknown> {
     nodes: flowchartNodesNode(flowchart.nodes),
     edges: flowchartEdgesNode(flowchart.edges),
     stale: flowchart.stale ? "true" : undefined,
+    ...(flowchart.rowHeights ? { rowHeights: rowHeightsNode(flowchart.rowHeights) } : {}),
+    ...(flowchart.columnWidths ? { columnWidths: columnWidthsNode(flowchart.columnWidths) } : {}),
   };
 }
 
