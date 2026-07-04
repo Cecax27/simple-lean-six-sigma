@@ -2,6 +2,12 @@ import { jsPDF } from "jspdf";
 import type { ExportOptions } from "@/lib/export/types";
 import { serializeToCsv } from "@/tools/mapa-proceso-extendido/csv";
 import { NODE_SIZES } from "@/tools/mapa-proceso-extendido/layout";
+import {
+  COLUMN_WIDTH,
+  LANE_HEADER_HEIGHT,
+  LANE_HEADER_WIDTH,
+  ROW_HEIGHT,
+} from "@/tools/mapa-proceso-extendido/layout";
 import type {
   ActivityType,
   FlowchartData,
@@ -10,10 +16,6 @@ import type {
   ProcessMap,
 } from "@/tools/mapa-proceso-extendido/types";
 
-const COL_WIDTH = 280;
-const ROW_HEIGHT = 180;
-const LANE_HDR_W = 130;
-const LANE_HDR_H = 50;
 const PAD = 32;
 const FONT = "system-ui, -apple-system, sans-serif";
 
@@ -192,8 +194,13 @@ export function renderProcessMapToSvg(
     .filter(Boolean) as { id: string; name: string }[];
   const activityMap = new Map(map.activities.map((a) => [a.id, a]));
 
-  const gridW = deptOrder.length * COL_WIDTH + LANE_HDR_W;
-  const gridH = stageOrder.length * ROW_HEIGHT + LANE_HDR_H;
+  const rowYOffset = new Map<string, number>();
+  let gridH = LANE_HEADER_HEIGHT;
+  for (const stageId of flowchart.stageOrder) {
+    rowYOffset.set(stageId, gridH);
+    gridH += flowchart.rowHeights?.[stageId] ?? ROW_HEIGHT;
+  }
+  const gridW = deptOrder.length * COLUMN_WIDTH + LANE_HEADER_WIDTH;
 
   const showTitle = options.fields.includes("title") && !!map.title;
   const showDate = options.fields.includes("date");
@@ -216,7 +223,7 @@ export function renderProcessMapToSvg(
 
   if (showTitle) {
     lines.push(
-      textEl(PAD + LANE_HDR_W + gridW / 2, PAD + 24, map.title, 18, "bold", text, "middle", "middle"),
+      textEl(PAD + LANE_HEADER_WIDTH + gridW / 2, PAD + 24, map.title, 18, "bold", text, "middle", "middle"),
     );
   }
 
@@ -238,19 +245,20 @@ export function renderProcessMapToSvg(
   // ── Grid backgrounds ──────────────────────────────────────────────────
 
   stageOrder.forEach((stage, i) => {
-    const ry = gridY + LANE_HDR_H + i * ROW_HEIGHT;
+    const ry = gridY + (rowYOffset.get(stage.id) ?? 0);
+    const rh = flowchart.rowHeights?.[stage.id] ?? ROW_HEIGHT;
     const fill = i % 2 === 0
       ? rgbaStr(accent, 0.15)
       : rgbaStr(accent, 0.05);
     lines.push(
-      `<rect x="${gridX}" y="${ry}" width="${gridW}" height="${ROW_HEIGHT}" fill="${fill}" stroke="${rgbaStr(text, 0.08)}" stroke-width="0.5"/>`,
+      `<rect x="${gridX}" y="${ry}" width="${gridW}" height="${rh}" fill="${fill}" stroke="${rgbaStr(text, 0.08)}" stroke-width="0.5"/>`,
     );
   });
 
   // ── Vertical dividers ─────────────────────────────────────────────────
 
   deptOrder.forEach((_, i) => {
-    const cx = gridX + LANE_HDR_W + i * COL_WIDTH;
+    const cx = gridX + LANE_HEADER_WIDTH + i * COLUMN_WIDTH;
     lines.push(
       `<line x1="${cx}" y1="${gridY}" x2="${cx}" y2="${gridY + gridH}" stroke="${rgbaStr(text, 0.12)}" stroke-width="1"/>`,
     );
@@ -259,31 +267,32 @@ export function renderProcessMapToSvg(
   // ── Department headers ────────────────────────────────────────────────
 
   deptOrder.forEach((dept, i) => {
-    const cx = gridX + LANE_HDR_W + i * COL_WIDTH;
+    const cx = gridX + LANE_HEADER_WIDTH + i * COLUMN_WIDTH;
     lines.push(
-      `<rect x="${cx}" y="${gridY}" width="${COL_WIDTH}" height="${LANE_HDR_H}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
+      `<rect x="${cx}" y="${gridY}" width="${COLUMN_WIDTH}" height="${LANE_HEADER_HEIGHT}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
     );
     lines.push(
-      textEl(cx + COL_WIDTH / 2, gridY + LANE_HDR_H / 2, dept.name, 11, "600", text, "middle", "middle"),
+      textEl(cx + COLUMN_WIDTH / 2, gridY + LANE_HEADER_HEIGHT / 2, dept.name, 11, "600", text, "middle", "middle"),
     );
   });
 
   // ── Stage headers ─────────────────────────────────────────────────────
 
-  stageOrder.forEach((stage, i) => {
-    const ry = gridY + LANE_HDR_H + i * ROW_HEIGHT;
+  stageOrder.forEach((stage) => {
+    const ry = gridY + (rowYOffset.get(stage.id) ?? 0);
+    const rh = flowchart.rowHeights?.[stage.id] ?? ROW_HEIGHT;
     lines.push(
-      `<rect x="${gridX}" y="${ry}" width="${LANE_HDR_W}" height="${ROW_HEIGHT}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
+      `<rect x="${gridX}" y="${ry}" width="${LANE_HEADER_WIDTH}" height="${rh}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
     );
     lines.push(
-      textEl(gridX + LANE_HDR_W / 2, ry + ROW_HEIGHT / 2, stage.name, 11, "600", text, "middle", "middle"),
+      textEl(gridX + LANE_HEADER_WIDTH / 2, ry + rh / 2, stage.name, 11, "600", text, "middle", "middle"),
     );
   });
 
   // ── Corner ────────────────────────────────────────────────────────────
 
   lines.push(
-    `<rect x="${gridX}" y="${gridY}" width="${LANE_HDR_W}" height="${LANE_HDR_H}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
+    `<rect x="${gridX}" y="${gridY}" width="${LANE_HEADER_WIDTH}" height="${LANE_HEADER_HEIGHT}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
   );
 
   // ── Activity nodes ────────────────────────────────────────────────────
@@ -341,7 +350,7 @@ export function renderProcessMapToSvg(
       ["Fin", "end"],
     ];
 
-    let lx = PAD + LANE_HDR_W;
+    let lx = PAD + LANE_HEADER_WIDTH;
     const ly = svgH - PAD / 2;
 
     legends.forEach(([name, type]) => {
