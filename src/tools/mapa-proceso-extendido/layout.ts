@@ -69,7 +69,16 @@ export function generateLayout(map: ProcessMap): FlowchartData {
       const key = `${act.id}->${nextId}`;
       if (!edgeIds.has(key)) {
         edgeIds.add(key);
-        edges.push({ id: uid("e"), source: act.id, target: nextId });
+        const edge: FlowchartEdge = { id: uid("e"), source: act.id, target: nextId };
+
+        if (act.nextLabels?.[nextId]) {
+          edge.label = act.nextLabels[nextId];
+        } else if (act.type === "decision" && act.nextIds.length === 2) {
+          const idx = act.nextIds.indexOf(nextId);
+          edge.label = idx === 0 ? "Sí" : "No";
+        }
+
+        edges.push(edge);
       }
     }
   }
