@@ -38,6 +38,16 @@ const nextIdsNodeSchema = z.union([
   z.string(),
 ]);
 
+const nextLabelSchema = z.object({
+  "@_id": z.string(),
+  "#text": z.string(),
+});
+
+const nextLabelsNodeSchema = z.union([
+  z.object({ label: z.union([nextLabelSchema, z.array(nextLabelSchema)]).optional() }),
+  z.string(),
+]);
+
 const activitySchema = z.object({
   "@_id": z.string(),
   name: z.string(),
@@ -46,6 +56,7 @@ const activitySchema = z.object({
   departmentId: z.string(),
   type: z.enum(["start", "process", "decision", "end"]),
   nextIds: nextIdsNodeSchema.optional(),
+  nextLabels: nextLabelsNodeSchema.optional(),
 });
 
 const activitiesNodeSchema = z.union([
@@ -143,7 +154,17 @@ function mapActivity(raw: {
   departmentId: string;
   type: string;
   nextIds?: unknown;
+  nextLabels?: unknown;
 }): Activity {
+  const labels = readSection<unknown>(raw.nextLabels, "label");
+  const labelArr = asArray(labels as { "@_id": string; "#text": string } | undefined);
+  const nextLabels: Record<string, string> = {};
+  for (const lbl of labelArr) {
+    if (lbl["@_id"] && lbl["#text"]) {
+      nextLabels[lbl["@_id"]] = lbl["#text"];
+    }
+  }
+
   return {
     id: raw["@_id"],
     name: raw.name,
@@ -152,6 +173,7 @@ function mapActivity(raw: {
     departmentId: raw.departmentId,
     type: raw.type as Activity["type"],
     nextIds: readIds(raw.nextIds),
+    ...(Object.keys(nextLabels).length > 0 ? { nextLabels } : {}),
   };
 }
 
@@ -248,6 +270,18 @@ function stagesNode(stages: Stage[]) {
   };
 }
 
+function nextLabelsNode(
+  nextLabels: Record<string, string> | undefined,
+): Record<string, unknown> {
+  if (!nextLabels || Object.keys(nextLabels).length === 0) return {};
+  return {
+    label: Object.entries(nextLabels).map(([id, text]) => ({
+      "@_id": id,
+      "#text": text,
+    })),
+  };
+}
+
 function activitiesNode(activities: Activity[]): { activity?: Array<Record<string, unknown>> } {
   if (activities.length === 0) return {};
   return {
@@ -259,6 +293,7 @@ function activitiesNode(activities: Activity[]): { activity?: Array<Record<strin
       departmentId: a.departmentId,
       type: a.type,
       nextIds: idsNode(a.nextIds),
+      nextLabels: nextLabelsNode(a.nextLabels),
     })),
   };
 }

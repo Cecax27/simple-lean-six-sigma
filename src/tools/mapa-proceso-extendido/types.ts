@@ -20,6 +20,7 @@ export interface Activity {
   departmentId: string;
   type: ActivityType;
   nextIds: string[];
+  nextLabels?: Record<string, string>;
 }
 
 export interface FlowchartNode {

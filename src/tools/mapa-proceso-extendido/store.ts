@@ -34,8 +34,10 @@ interface ProcessMapStore extends ProcessMapState {
     description?: string;
     type: ActivityType;
     nextIds: string[];
+    nextLabels?: Record<string, string>;
   }) => void;
   updateActivity: (id: string, data: Partial<Omit<Activity, "id">>) => void;
+  setNextLabel: (activityId: string, targetId: string, label: string) => void;
   removeActivity: (id: string) => void;
   setFlowchart: (data: FlowchartData | null) => void;
   updateFlowchartNode: (id: string, position: { x: number; y: number }) => void;
@@ -198,6 +200,7 @@ export const useProcessMapStore = create<ProcessMapStore>((set) => ({
             description: data.description?.trim(),
             type: data.type,
             nextIds: data.nextIds,
+            nextLabels: data.nextLabels ?? {},
           },
         ],
       },
@@ -208,19 +211,53 @@ export const useProcessMapStore = create<ProcessMapStore>((set) => ({
     set((state) => ({
       root: {
         ...state.root,
-        activities: state.root.activities.map((a) =>
-          a.id === id
-            ? {
-                ...a,
-                ...data,
-                name: data.name !== undefined ? data.name : a.name,
-                description:
-                  data.description !== undefined
-                    ? data.description
-                    : a.description,
+        activities: state.root.activities.map((a) => {
+          if (a.id !== id) return a;
+
+          const updated = {
+            ...a,
+            ...data,
+            name: data.name !== undefined ? data.name : a.name,
+            description:
+              data.description !== undefined
+                ? data.description
+                : a.description,
+          };
+
+          if (data.nextIds !== undefined) {
+            const newNextIds = new Set(data.nextIds);
+            const prunedLabels: Record<string, string> = {};
+            if (updated.nextLabels) {
+              for (const targetId of Object.keys(updated.nextLabels)) {
+                if (newNextIds.has(targetId)) {
+                  prunedLabels[targetId] = updated.nextLabels[targetId];
+                }
               }
-            : a,
-        ),
+            }
+            updated.nextLabels = prunedLabels;
+          }
+
+          return updated;
+        }),
+      },
+    }));
+  },
+
+  setNextLabel: (activityId, targetId, label) => {
+    set((state) => ({
+      root: {
+        ...state.root,
+        activities: state.root.activities.map((a) => {
+          if (a.id !== activityId) return a;
+          const trimmed = label.trim();
+          const nextLabels = { ...(a.nextLabels ?? {}) };
+          if (trimmed) {
+            nextLabels[targetId] = trimmed;
+          } else {
+            delete nextLabels[targetId];
+          }
+          return { ...a, nextLabels };
+        }),
       },
     }));
   },
