@@ -200,7 +200,13 @@ export function renderProcessMapToSvg(
     rowYOffset.set(stageId, gridH);
     gridH += flowchart.rowHeights?.[stageId] ?? ROW_HEIGHT;
   }
-  const gridW = deptOrder.length * COLUMN_WIDTH + LANE_HEADER_WIDTH;
+
+  const columnXOffset = new Map<string, number>();
+  let gridW = LANE_HEADER_WIDTH;
+  for (const deptId of flowchart.departmentOrder) {
+    columnXOffset.set(deptId, gridW);
+    gridW += flowchart.columnWidths?.[deptId] ?? COLUMN_WIDTH;
+  }
 
   const showTitle = options.fields.includes("title") && !!map.title;
   const showDate = options.fields.includes("date");
@@ -257,8 +263,8 @@ export function renderProcessMapToSvg(
 
   // ── Vertical dividers ─────────────────────────────────────────────────
 
-  deptOrder.forEach((_, i) => {
-    const cx = gridX + LANE_HEADER_WIDTH + i * COLUMN_WIDTH;
+  deptOrder.forEach((dept) => {
+    const cx = gridX + (columnXOffset.get(dept.id) ?? 0);
     lines.push(
       `<line x1="${cx}" y1="${gridY}" x2="${cx}" y2="${gridY + gridH}" stroke="${rgbaStr(text, 0.12)}" stroke-width="1"/>`,
     );
@@ -266,13 +272,14 @@ export function renderProcessMapToSvg(
 
   // ── Department headers ────────────────────────────────────────────────
 
-  deptOrder.forEach((dept, i) => {
-    const cx = gridX + LANE_HEADER_WIDTH + i * COLUMN_WIDTH;
+  deptOrder.forEach((dept) => {
+    const cx = gridX + (columnXOffset.get(dept.id) ?? 0);
+    const cw = flowchart.columnWidths?.[dept.id] ?? COLUMN_WIDTH;
     lines.push(
-      `<rect x="${cx}" y="${gridY}" width="${COLUMN_WIDTH}" height="${LANE_HEADER_HEIGHT}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
+      `<rect x="${cx}" y="${gridY}" width="${cw}" height="${LANE_HEADER_HEIGHT}" fill="${header}" stroke="${rgbaStr(text, 0.12)}"/>`,
     );
     lines.push(
-      textEl(cx + COLUMN_WIDTH / 2, gridY + LANE_HEADER_HEIGHT / 2, dept.name, 11, "600", text, "middle", "middle"),
+      textEl(cx + cw / 2, gridY + LANE_HEADER_HEIGHT / 2, dept.name, 11, "600", text, "middle", "middle"),
     );
   });
 

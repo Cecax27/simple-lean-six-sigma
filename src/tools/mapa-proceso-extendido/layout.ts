@@ -27,6 +27,7 @@ const NODE_GAP = 12;
 export function generateLayout(
   map: ProcessMap,
   rowHeightOverrides?: Record<string, number>,
+  columnWidthOverrides?: Record<string, number>,
 ): FlowchartData {
   const departmentOrder = map.departments.map((d) => d.id);
   const stageOrder = map.stages.map((s) => s.id);
@@ -62,23 +63,34 @@ export function generateLayout(
   for (const stageId of stageOrder) {
     const autoH = rowAutoHeight.get(stageId) ?? ROW_HEIGHT;
     const overrideH = rowHeightOverrides?.[stageId];
-    const h = overrideH !== undefined ? overrideH : autoH;
+    const h = overrideH !== undefined ? Math.max(ROW_HEIGHT, overrideH) : autoH;
     rowHeights[stageId] = h;
     rowYOffset.set(stageId, yCursor);
     yCursor += h;
+  }
+
+  const columnWidths: Record<string, number> = {};
+  const columnXOffset = new Map<string, number>();
+  let xCursor = LANE_HEADER_WIDTH;
+  for (const deptId of departmentOrder) {
+    const overrideW = columnWidthOverrides?.[deptId];
+    const w = overrideW !== undefined ? Math.max(COLUMN_WIDTH, overrideW) : COLUMN_WIDTH;
+    columnWidths[deptId] = w;
+    columnXOffset.set(deptId, xCursor);
+    xCursor += w;
   }
 
   const cellCounter = new Map<string, number>();
   const nodes: FlowchartNode[] = [];
 
   for (const act of map.activities) {
-    const col = columnIndex.get(act.departmentId) ?? 0;
+    const colW = columnWidths[act.departmentId] ?? COLUMN_WIDTH;
     const key = `${act.departmentId}${NODE_SEPARATOR}${act.stageId}`;
     const cellCount = cellOccupancy.get(key) ?? 1;
     const cellIdx = cellCounter.get(key) ?? 0;
     cellCounter.set(key, cellIdx + 1);
 
-    const cellX = LANE_HEADER_WIDTH + col * COLUMN_WIDTH;
+    const cellX = columnXOffset.get(act.departmentId) ?? LANE_HEADER_WIDTH;
     const cellY = rowYOffset.get(act.stageId) ?? LANE_HEADER_HEIGHT;
     const size = NODE_SIZES[act.type] ?? NODE_SIZES.process;
     const rowH = rowHeights[act.stageId] ?? ROW_HEIGHT;
@@ -87,7 +99,7 @@ export function generateLayout(
     const gap = cellCount > 1 ? availableHeight / (cellCount + 1) : (rowH - size.height) / 2 - CELL_PADDING;
     const baseY = cellY + CELL_PADDING;
 
-    const x = Math.round(cellX + (COLUMN_WIDTH - size.width) / 2);
+    const x = Math.round(cellX + (colW - size.width) / 2);
     const y = Math.round(baseY + gap + cellIdx * (size.height + gap));
 
     nodes.push({ id: act.id, position: { x, y } });
@@ -122,15 +134,27 @@ export function generateLayout(
     stageOrder,
     stale: false,
     rowHeights,
+    columnWidths,
   };
 }
 
 export function computeGridDimensions(
-  departmentCount: number,
+  departmentOrder: string[],
   rowHeights: Record<string, number> | undefined,
   stageOrder: string[],
-): { gridWidth: number; gridHeight: number; rowYOffset: Map<string, number> } {
-  const gridWidth = departmentCount * COLUMN_WIDTH + LANE_HEADER_WIDTH;
+  columnWidths?: Record<string, number>,
+): {
+  gridWidth: number;
+  gridHeight: number;
+  rowYOffset: Map<string, number>;
+  columnXOffset: Map<string, number>;
+} {
+  let gridWidth = LANE_HEADER_WIDTH;
+  const columnXOffset = new Map<string, number>();
+  for (const deptId of departmentOrder) {
+    columnXOffset.set(deptId, gridWidth);
+    gridWidth += columnWidths?.[deptId] ?? COLUMN_WIDTH;
+  }
 
   const rowYOffset = new Map<string, number>();
   let gridHeight = LANE_HEADER_HEIGHT;
@@ -139,7 +163,7 @@ export function computeGridDimensions(
     gridHeight += rowHeights?.[stageId] ?? ROW_HEIGHT;
   }
 
-  return { gridWidth, gridHeight, rowYOffset };
+  return { gridWidth, gridHeight, rowYOffset, columnXOffset };
 }
 
 export function getCellOrigins(
