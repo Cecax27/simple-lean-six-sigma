@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowRightLeft, CheckCircle, Download, Play, X } from "lucide-react";
+import { AlertTriangle, ArrowRightLeft, CheckCircle, Download, Play, X, SlidersHorizontal, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { useDocsStore } from "@/store/docs-store";
+import { cn } from "@/lib/utils";
 import { serializeToXml, parseFromXml } from "@/tools/mapa-proceso-extendido/xml";
-import { generateLayout } from "@/tools/mapa-proceso-extendido/layout";
+import { generateLayout, ROW_HEIGHT, COLUMN_WIDTH } from "@/tools/mapa-proceso-extendido/layout";
 import { useProcessMapStore } from "@/tools/mapa-proceso-extendido/store";
 import { processMapExportLayouts, processMapExportFields } from "@/tools/mapa-proceso-extendido/types";
 import type { ProcessMap } from "@/tools/mapa-proceso-extendido/types";
@@ -49,6 +51,8 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
   const moveStageUp = useProcessMapStore((s) => s.moveStageUp);
   const moveStageDown = useProcessMapStore((s) => s.moveStageDown);
   const setFlowchart = useProcessMapStore((s) => s.setFlowchart);
+  const setRowHeight = useProcessMapStore((s) => s.setRowHeight);
+  const setColumnWidth = useProcessMapStore((s) => s.setColumnWidth);
 
   const getDocData = useDocsStore((s) => s.getDocData);
   const setDocData = useDocsStore((s) => s.setDocData);
@@ -93,7 +97,7 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
     const deps = root.departments.map((d) => `${d.id}:${d.name}`).join(",");
     const stgs = root.stages.map((s) => `${s.id}:${s.name}`).join(",");
     const acts = root.activities
-      .map((a) => `${a.id}:${a.name}:${a.type}:${a.stageId}:${a.departmentId}:${a.nextIds.join(".")}`)
+      .map((a) => `${a.id}:${a.name}:${a.type}:${a.stageId}:${a.departmentId}:${a.nextIds.join(".")}:${JSON.stringify(a.nextLabels ?? {})}`)
       .join(";");
     return `${root.nextActivityId}|${deps}|${stgs}|${acts}`;
   }, [root.nextActivityId, root.departments, root.stages, root.activities]);
@@ -342,6 +346,27 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
                   </Button>
                 </div>
               )}
+              {root.flowchart && !root.flowchart.stale && (
+                <DimensionControls
+                  departments={root.departments}
+                  stages={root.stages}
+                  flowchart={root.flowchart}
+                  onRowHeightChange={(stageId, height) => {
+                    setRowHeight(stageId, height);
+                    const updatedFlowchart = { ...root.flowchart!, rowHeights: { ...(root.flowchart!.rowHeights ?? {}), [stageId]: height } };
+                    const layout = generateLayout({ ...root, flowchart: null }, updatedFlowchart.rowHeights, root.flowchart?.columnWidths);
+                    setFlowchart(layout);
+                    setFlowchartVersion((v) => v + 1);
+                  }}
+                  onColumnWidthChange={(deptId, width) => {
+                    setColumnWidth(deptId, width);
+                    const updatedColumnWidths = { ...(root.flowchart!.columnWidths ?? {}), [deptId]: width };
+                    const layout = generateLayout({ ...root, flowchart: null }, root.flowchart?.rowHeights, updatedColumnWidths);
+                    setFlowchart(layout);
+                    setFlowchartVersion((v) => v + 1);
+                  }}
+                />
+              )}
               <FlowchartCanvas
                 flowchart={root.flowchart}
                 departments={root.departments}
@@ -369,6 +394,93 @@ export function ProcessMapEditor({ docId }: ProcessMapEditorProps) {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function DimensionControls({
+  departments,
+  stages,
+  flowchart,
+  onRowHeightChange,
+  onColumnWidthChange,
+}: {
+  departments: { id: string; name: string }[];
+  stages: { id: string; name: string }[];
+  flowchart: { rowHeights?: Record<string, number>; columnWidths?: Record<string, number> };
+  onRowHeightChange: (stageId: string, height: number) => void;
+  onColumnWidthChange: (deptId: string, width: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-lg border">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-muted/50 rounded-t-lg"
+      >
+        <SlidersHorizontal className="size-4" />
+        <span>Ajustar dimensiones</span>
+        <ChevronDown
+          className={cn(
+            "ml-auto size-4 transition-transform",
+            expanded && "rotate-180",
+          )}
+        />
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Altura de filas
+            </h4>
+            {stages.map((stage) => (
+              <div key={stage.id} className="flex items-center gap-2 mb-1.5">
+                <span className="text-xs w-24 truncate" title={stage.name}>
+                  {stage.name}
+                </span>
+                <Slider
+                  value={flowchart.rowHeights?.[stage.id] ?? ROW_HEIGHT}
+                  onValueChange={(v) => onRowHeightChange(stage.id, Array.isArray(v) ? v[0] : v)}
+                  min={ROW_HEIGHT}
+                  max={1200}
+                  step={10}
+                  className="flex-1"
+                />
+                <span className="text-xs w-10 text-right tabular-nums text-muted-foreground">
+                  {flowchart.rowHeights?.[stage.id] ?? ROW_HEIGHT}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Ancho de columnas
+            </h4>
+            {departments.map((dept) => (
+              <div key={dept.id} className="flex items-center gap-2 mb-1.5">
+                <span className="text-xs w-24 truncate" title={dept.name}>
+                  {dept.name}
+                </span>
+                <Slider
+                  value={flowchart.columnWidths?.[dept.id] ?? COLUMN_WIDTH}
+                  onValueChange={(v) => onColumnWidthChange(dept.id, Array.isArray(v) ? v[0] : v)}
+                  min={COLUMN_WIDTH}
+                  max={800}
+                  step={10}
+                  className="flex-1"
+                />
+                <span className="text-xs w-10 text-right tabular-nums text-muted-foreground">
+                  {flowchart.columnWidths?.[dept.id] ?? COLUMN_WIDTH}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

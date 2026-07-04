@@ -22,6 +22,7 @@ export function ActivityTable() {
   const root = useProcessMapStore((s) => s.root);
   const addActivity = useProcessMapStore((s) => s.addActivity);
   const updateActivity = useProcessMapStore((s) => s.updateActivity);
+  const setNextLabel = useProcessMapStore((s) => s.setNextLabel);
   const removeActivity = useProcessMapStore((s) => s.removeActivity);
 
   const departments = root.departments;
@@ -85,6 +86,7 @@ export function ActivityTable() {
                   stages={stages}
                   allActivities={activities}
                   onUpdate={(data) => updateActivity(act.id, data)}
+                  onSetLabel={(targetId, label) => setNextLabel(act.id, targetId, label)}
                   onRemove={() => removeActivity(act.id)}
                 />
               ))}
@@ -118,6 +120,7 @@ function ActivityRow({
   stages,
   allActivities,
   onUpdate,
+  onSetLabel,
   onRemove,
 }: {
   activity: ReturnType<typeof useProcessMapStore.getState>["root"]["activities"][number];
@@ -125,6 +128,7 @@ function ActivityRow({
   stages: ReturnType<typeof useProcessMapStore.getState>["root"]["stages"];
   allActivities: ReturnType<typeof useProcessMapStore.getState>["root"]["activities"];
   onUpdate: (data: Partial<{ name: string; description: string; stageId: string; departmentId: string; type: ActivityType; nextIds: string[] }>) => void;
+  onSetLabel: (targetId: string, label: string) => void;
   onRemove: () => void;
 }) {
   return (
@@ -194,6 +198,8 @@ function ActivityRow({
           selectedIds={activity.nextIds}
           options={allActivities.filter((a) => a.id !== activity.id)}
           onChange={(ids) => onUpdate({ nextIds: ids })}
+          labels={activity.nextLabels ?? {}}
+          onLabelsChange={onSetLabel}
         />
       </Td>
       <Td>
@@ -228,10 +234,14 @@ function MultiSelectCell({
   selectedIds,
   options,
   onChange,
+  labels,
+  onLabelsChange,
 }: {
   selectedIds: string[];
   options: { id: string; name: string }[];
   onChange: (ids: string[]) => void;
+  labels: Record<string, string>;
+  onLabelsChange: (targetId: string, label: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({});
@@ -274,14 +284,14 @@ function MultiSelectCell({
     if (rect) {
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      const popupHeight = Math.min(192, options.length * 32 + 4);
+      const popupHeight = Math.min(256, options.length * 36 + selectedIds.length * 28 + 4);
       const openDown = spaceBelow >= popupHeight || spaceBelow > spaceAbove;
 
       setPopupStyle({
         position: "fixed",
         top: openDown ? rect.bottom + 4 : rect.top - popupHeight - 4,
-        left: Math.max(4, Math.min(rect.left, window.innerWidth - 228)),
-        width: 224,
+        left: Math.max(4, Math.min(rect.left, window.innerWidth - 308)),
+        width: 300,
         zIndex: 100,
       });
     }
@@ -292,27 +302,41 @@ function MultiSelectCell({
     <div
       ref={popupRef}
       style={popupStyle}
-      className="rounded-md border bg-popover shadow-md p-1 max-h-48 overflow-y-auto"
+      className="rounded-md border bg-popover shadow-md p-1 max-h-64 overflow-y-auto"
     >
       {options.length === 0 && (
         <p className="text-xs text-muted-foreground p-2">
           No hay otras actividades
         </p>
       )}
-      {options.map((opt) => (
-        <label
-          key={opt.id}
-          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-xs"
-        >
-          <Checkbox
-            checked={selectedIds.includes(opt.id)}
-            onCheckedChange={() => toggle(opt.id)}
-          />
-          <span className="truncate">
-            {opt.id} — {opt.name || "(sin nombre)"}
-          </span>
-        </label>
-      ))}
+      {options.map((opt) => {
+        const isSelected = selectedIds.includes(opt.id);
+        return (
+          <div key={opt.id}>
+            <label className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted cursor-pointer text-xs">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => toggle(opt.id)}
+              />
+              <span className="truncate">
+                {opt.id} — {opt.name || "(sin nombre)"}
+              </span>
+            </label>
+            {isSelected && (
+              <div className="px-2 pb-1 ml-6" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="text"
+                  value={labels[opt.id] ?? ""}
+                  onChange={(e) => onLabelsChange(opt.id, e.target.value)}
+                  onBlur={(e) => onLabelsChange(opt.id, e.target.value.trim())}
+                  placeholder="Etiqueta"
+                  className="w-full h-6 rounded border border-input bg-background px-1.5 text-xs"
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>,
     document.body,
   );

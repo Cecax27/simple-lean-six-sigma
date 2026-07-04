@@ -20,6 +20,7 @@ export interface Activity {
   departmentId: string;
   type: ActivityType;
   nextIds: string[];
+  nextLabels?: Record<string, string>;
 }
 
 export interface FlowchartNode {
@@ -40,6 +41,8 @@ export interface FlowchartData {
   departmentOrder: string[];
   stageOrder: string[];
   stale: boolean;
+  rowHeights?: Record<string, number>;
+  columnWidths?: Record<string, number>;
 }
 
 export interface ProcessMap {

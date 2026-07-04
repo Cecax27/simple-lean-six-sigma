@@ -16,6 +16,7 @@ import "@xyflow/react/dist/style.css";
 import { nodeTypes, type ProcessMapNodeData } from "@/tools/mapa-proceso-extendido/components/flowchart-nodes";
 import {
   COLUMN_WIDTH,
+  computeGridDimensions,
   LANE_HEADER_HEIGHT,
   LANE_HEADER_WIDTH,
   ROW_HEIGHT,
@@ -157,8 +158,12 @@ function SwimlaneBackground({
     name: stageNames.get(id) ?? id,
   }));
 
-  const gridWidth = depts.length * COLUMN_WIDTH + LANE_HEADER_WIDTH;
-  const gridHeight = stgs.length * ROW_HEIGHT + LANE_HEADER_HEIGHT;
+  const { gridWidth, gridHeight, rowYOffset, columnXOffset } = computeGridDimensions(
+    flowchart.departmentOrder,
+    flowchart.rowHeights,
+    flowchart.stageOrder,
+    flowchart.columnWidths,
+  );
 
   return (
     <svg
@@ -168,81 +173,97 @@ function SwimlaneBackground({
         transformOrigin: "0 0",
       }}
     >
-      {stgs.map((stage, i) => (
-        <rect
-          key={stage.id}
-          x={0}
-          y={LANE_HEADER_HEIGHT + i * ROW_HEIGHT}
-          width={gridWidth}
-          height={ROW_HEIGHT}
-          fill={i % 2 === 0 ? "hsl(var(--muted) / 0.15)" : "hsl(var(--muted) / 0.05)"}
-          stroke="hsl(var(--border))"
-          strokeWidth={0.5}
-          rx={2}
-        />
-      ))}
-
-      {depts.map((dept, i) => (
-        <line
-          key={dept.id}
-          x1={LANE_HEADER_WIDTH + i * COLUMN_WIDTH}
-          y1={0}
-          x2={LANE_HEADER_WIDTH + i * COLUMN_WIDTH}
-          y2={gridHeight}
-          stroke="hsl(var(--border))"
-          strokeWidth={1}
-        />
-      ))}
-
-      {depts.map((dept, i) => (
-        <g key={`dep-hdr-${dept.id}`}>
+      {stgs.map((stage, i) => {
+        const ry = rowYOffset.get(stage.id) ?? LANE_HEADER_HEIGHT + i * ROW_HEIGHT;
+        const rh = flowchart.rowHeights?.[stage.id] ?? ROW_HEIGHT;
+        return (
           <rect
-            x={LANE_HEADER_WIDTH + i * COLUMN_WIDTH}
-            y={0}
-            width={COLUMN_WIDTH}
-            height={LANE_HEADER_HEIGHT}
-            fill="hsl(var(--card))"
-            stroke="hsl(var(--border))"
-            strokeWidth={1}
-          />
-          <text
-            x={LANE_HEADER_WIDTH + i * COLUMN_WIDTH + COLUMN_WIDTH / 2}
-            y={LANE_HEADER_HEIGHT / 2}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="fill-foreground"
-            fontSize={11}
-            fontWeight={600}
-          >
-            {dept.name}
-          </text>
-        </g>
-      ))}
-
-      {stgs.map((stage, i) => (
-        <g key={`stag-hdr-${stage.id}`}>
-          <rect
+            key={stage.id}
             x={0}
-            y={LANE_HEADER_HEIGHT + i * ROW_HEIGHT}
-            width={LANE_HEADER_WIDTH}
-            height={ROW_HEIGHT}
-            fill="hsl(var(--card))"
+            y={ry}
+            width={gridWidth}
+            height={rh}
+            fill={i % 2 === 0 ? "hsl(var(--muted) / 0.15)" : "hsl(var(--muted) / 0.05)"}
+            stroke="hsl(var(--border))"
+            strokeWidth={0.5}
+            rx={2}
+          />
+        );
+      })}
+
+      {depts.map((dept) => {
+        const cx = columnXOffset.get(dept.id) ?? LANE_HEADER_WIDTH;
+        const cw = flowchart.columnWidths?.[dept.id] ?? COLUMN_WIDTH;
+        return (
+          <line
+            key={dept.id}
+            x1={cx}
+            y1={0}
+            x2={cx}
+            y2={gridHeight}
             stroke="hsl(var(--border))"
             strokeWidth={1}
           />
-          <text
-            x={LANE_HEADER_WIDTH / 2}
-            y={LANE_HEADER_HEIGHT + i * ROW_HEIGHT + ROW_HEIGHT / 2}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="fill-foreground"
-            fontSize={11}
-            fontWeight={600}
-          >
-            {stage.name}
-          </text>
-        </g>
-      ))}
+        );
+      })}
+
+      {depts.map((dept) => {
+        const cx = columnXOffset.get(dept.id) ?? LANE_HEADER_WIDTH;
+        const cw = flowchart.columnWidths?.[dept.id] ?? COLUMN_WIDTH;
+        return (
+          <g key={`dep-hdr-${dept.id}`}>
+            <rect
+              x={cx}
+              y={0}
+              width={cw}
+              height={LANE_HEADER_HEIGHT}
+              fill="hsl(var(--card))"
+              stroke="hsl(var(--border))"
+              strokeWidth={1}
+            />
+            <text
+              x={cx + cw / 2}
+              y={LANE_HEADER_HEIGHT / 2}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="fill-foreground"
+              fontSize={11}
+              fontWeight={600}
+            >
+              {dept.name}
+            </text>
+          </g>
+        );
+      })}
+
+      {stgs.map((stage) => {
+        const ry = rowYOffset.get(stage.id) ?? 0;
+        const rh = flowchart.rowHeights?.[stage.id] ?? ROW_HEIGHT;
+        return (
+          <g key={`stag-hdr-${stage.id}`}>
+            <rect
+              x={0}
+              y={ry}
+              width={LANE_HEADER_WIDTH}
+              height={rh}
+              fill="hsl(var(--card))"
+              stroke="hsl(var(--border))"
+              strokeWidth={1}
+            />
+            <text
+              x={LANE_HEADER_WIDTH / 2}
+              y={ry + rh / 2}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="fill-foreground"
+              fontSize={11}
+              fontWeight={600}
+            >
+              {stage.name}
+            </text>
+          </g>
+        );
+      })}
 
       <rect
         x={0}
