@@ -20,6 +20,7 @@ interface CartaControlStore {
   movePointUp: (id: string) => void;
   movePointDown: (id: string) => void;
   setPoints: (points: ControlChartPoint[]) => void;
+  appendPoints: (points: ControlChartPoint[]) => void;
   setUpperLimit: (data: Partial<{ enabled: boolean; value: number }>) => void;
   setLowerLimit: (data: Partial<{ enabled: boolean; value: number }>) => void;
   setCenterLineMode: (mode: CenterLineMode) => void;
@@ -98,6 +99,20 @@ export const useCartaControlStore = create<CartaControlStore>((set) => ({
         points: points.map((point) =>
           point.id ? point : { ...point, id: uid("point") },
         ),
+      },
+    }));
+  },
+
+  appendPoints: (points) => {
+    set((state) => ({
+      root: {
+        ...state.root,
+        points: [
+          ...state.root.points,
+          ...points.map((point) =>
+            point.id ? point : { ...point, id: uid("point") },
+          ),
+        ],
       },
     }));
   },
