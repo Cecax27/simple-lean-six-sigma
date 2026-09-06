@@ -3,6 +3,7 @@ export type ToolId =
   | "ishikawa"
   | "ctq"
   | "mapa-proceso-extendido"
+  | "carta-control"
   | "pareto"
   | "cinco-porques"
   | "dmaic";
@@ -46,6 +47,14 @@ export const TOOLS: ToolDescriptor[] = [
     descriptionEs:
       "Diagrama de flujo multicarril por departamento y etapa con edición interactiva.",
     hrefBase: "/mapa-proceso-extendido",
+    status: "ready",
+  },
+  {
+    id: "carta-control",
+    nameEs: "Carta de Control",
+    descriptionEs:
+      "Carta de control interactiva con limites LCS/LCI, linea central y comentarios por punto.",
+    hrefBase: "/carta-control",
     status: "ready",
   },
   {
