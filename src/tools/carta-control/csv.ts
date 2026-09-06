@@ -6,13 +6,15 @@ export interface CsvParseResult {
   errors: number;
 }
 
+const NUMBER_PATTERN = /^-?\d+(?:[.,]\d+)?$/;
+
 function parseValue(token: string): number | null {
-  const trimmed = token.trim().replace(/\./g, "").replace(",", ".");
-  const value = Number(trimmed);
-  if (!Number.isFinite(value)) {
+  const trimmed = token.trim();
+  if (!NUMBER_PATTERN.test(trimmed)) {
     return null;
   }
-  return value;
+  const value = Number(trimmed.replace(",", "."));
+  return Number.isFinite(value) ? value : null;
 }
 
 function parseLine(line: string): ControlChartPoint | null {
@@ -25,31 +27,14 @@ function parseLine(line: string): ControlChartPoint | null {
     return null;
   }
 
-  let label = "";
-  let value: number | null = null;
-  let comment: string | undefined;
-
-  if (tokens.length === 1) {
-    value = parseValue(tokens[0]);
-  } else if (tokens.length === 2) {
-    const firstValue = parseValue(tokens[0]);
-    const secondValue = parseValue(tokens[1]);
-    if (firstValue !== null && secondValue !== null) {
-      value = firstValue;
-      comment = tokens[1];
-    } else {
-      label = tokens[0];
-      value = secondValue !== null ? secondValue : parseValue(tokens[1]);
-    }
-  } else {
-    label = tokens[0];
-    value = parseValue(tokens[1]);
-    comment = tokens.slice(2).join(" ");
-  }
-
-  if (value === null) {
+  const valueIndex = tokens.findIndex((token) => parseValue(token) !== null);
+  if (valueIndex === -1) {
     return null;
   }
+
+  const value = parseValue(tokens[valueIndex]) as number;
+  const label = tokens.slice(0, valueIndex).join(" ");
+  const comment = tokens.slice(valueIndex + 1).join(", ");
 
   const point: ControlChartPoint = {
     id: uid("point"),

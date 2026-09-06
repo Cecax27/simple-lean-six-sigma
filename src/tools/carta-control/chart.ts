@@ -135,25 +135,70 @@ export function getPointXLabel(point: ControlChartPoint, index: number): string 
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DATE_TIME_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/;
-const DATE_TIME_SLASH_PATTERN = /^\d{2}\/\d{2}\/\d{4}(?:\s+\d{2}:\d{2})?/;
-const DATE_TIME_DOT_PATTERN = /^\d{2}\.\d{2}\.\d{4}(?:\s+\d{2}:\d{2})?/;
+const DATE_SLASH_PATTERN = /^\d{2}\/\d{2}\/\d{2,4}(?:\s+\d{2}:\d{2})?$/;
+const DATE_DOT_PATTERN = /^\d{2}\.\d{2}\.\d{2,4}(?:\s+\d{2}:\d{2})?$/;
 const TIME_PATTERN = /\d{2}:\d{2}/;
+
+function parseDayMonthYear(day: number, month: number, year: number): Date | null {
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+  const twoDigitYear = year < 100 ? 2000 + year : year;
+  const date = new Date(twoDigitYear, month - 1, day);
+  if (date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== twoDigitYear) {
+    return null;
+  }
+  return date;
+}
+
+function applyTime(date: Date, hours: number, minutes: number): Date {
+  const result = new Date(date);
+  result.setHours(hours, minutes, 0, 0);
+  return result;
+}
+
+function parseSlashOrDotDate(trimmed: string, separator: string): Date | null {
+  const parts = trimmed.split(separator);
+  if (parts.length < 3) {
+    return null;
+  }
+  const day = Number(parts[0]);
+  const month = Number(parts[1]);
+  const yearToken = parts[2];
+  const timeMatch = yearToken.match(/^(\d{2,4})\s+(\d{2}):(\d{2})$/);
+  const year = timeMatch ? Number(timeMatch[1]) : Number(yearToken);
+  const date = parseDayMonthYear(day, month, year);
+  if (!date) {
+    return null;
+  }
+  return timeMatch ? applyTime(date, Number(timeMatch[2]), Number(timeMatch[3])) : date;
+}
 
 export function parseDateLabel(label: string): Date | null {
   const trimmed = label.trim();
   if (!trimmed) {
     return null;
   }
-  const looksLikeDate =
-    DATE_ONLY_PATTERN.test(trimmed) ||
-    DATE_TIME_ISO_PATTERN.test(trimmed) ||
-    DATE_TIME_SLASH_PATTERN.test(trimmed) ||
-    DATE_TIME_DOT_PATTERN.test(trimmed);
-  if (!looksLikeDate) {
-    return null;
+
+  if (DATE_ONLY_PATTERN.test(trimmed)) {
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+
+  if (DATE_TIME_ISO_PATTERN.test(trimmed)) {
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  if (DATE_SLASH_PATTERN.test(trimmed)) {
+    return parseSlashOrDotDate(trimmed, "/");
+  }
+
+  if (DATE_DOT_PATTERN.test(trimmed)) {
+    return parseSlashOrDotDate(trimmed, ".");
+  }
+
+  return null;
 }
 
 export function hasTimeLabel(label: string): boolean {
