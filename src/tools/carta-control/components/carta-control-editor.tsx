@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChartCanvas } from "@/tools/carta-control/components/chart-canvas";
+import { DisplayControls } from "@/tools/carta-control/components/chart-display-controls";
+import type { PointRange } from "@/tools/carta-control/components/control-chart-svg";
 import { ChartParams } from "@/tools/carta-control/components/chart-params";
 import { PointsTable } from "@/tools/carta-control/components/points-table";
 import { ImportCsvDialog } from "@/tools/carta-control/components/import-csv-dialog";
@@ -49,6 +51,7 @@ export function CartaControlEditor({ docId }: CartaControlEditorProps) {
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
   const [view, setView] = useState<ViewMode>("display");
   const [editingPoint, setEditingPoint] = useState<ControlChartPoint | null>(null);
+  const [displayRange, setDisplayRange] = useState<PointRange | null>(null);
   const loadedRef = useRef(false);
 
   const root = useCartaControlStore((state) => state.root);
@@ -269,13 +272,18 @@ export function CartaControlEditor({ docId }: CartaControlEditorProps) {
       </header>
 
       {view === "display" ? (
-        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-lg border bg-card p-4">
-          <ChartCanvas chart={root} />
+        <main className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4">
+          <section className="shrink-0">
+            <DisplayControls points={root.points} onChange={setDisplayRange} />
+          </section>
+          <section className="min-h-0 flex-1">
+            <ChartCanvas chart={root} range={displayRange ?? undefined} />
+          </section>
         </main>
       ) : (
         <main className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain lg:grid-cols-[1fr_320px]">
           <div className="flex min-h-0 flex-col gap-4">
-            <section className="rounded-lg border bg-card p-4">
+            <section className="h-[360px] rounded-lg border bg-card p-4">
               <ChartCanvas
                 chart={root}
                 onPointClick={(point) => setEditingPoint(point)}

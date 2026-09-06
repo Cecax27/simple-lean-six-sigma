@@ -39,8 +39,15 @@ export function createPoint(
 }
 
 export function formatValue(value: number): string {
+  if (!Number.isFinite(value)) {
+    return String(value);
+  }
   const rounded = Math.round(value * 100) / 100;
-  return String(rounded);
+  const hasDecimals = Math.abs(rounded - Math.round(rounded)) > 1e-9;
+  const options: Intl.NumberFormatOptions = hasDecimals
+    ? { minimumFractionDigits: 1, maximumFractionDigits: 2 }
+    : { maximumFractionDigits: 0 };
+  return rounded.toLocaleString("en-US", options);
 }
 
 export function computeCenterLine(chart: ControlChart): number {
@@ -118,7 +125,67 @@ export function computeYRange(chart: ControlChart): YRange {
 }
 
 export function getPointXLabel(point: ControlChartPoint, index: number): string {
-  return point.label.trim() || String(index + 1);
+  const label = point.label.trim();
+  const date = parseDateLabel(label);
+  if (date) {
+    return formatDateLabel(date, hasTimeLabel(label));
+  }
+  return label || String(index + 1);
+}
+
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_TIME_ISO_PATTERN = /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/;
+const DATE_TIME_SLASH_PATTERN = /^\d{2}\/\d{2}\/\d{4}(?:\s+\d{2}:\d{2})?/;
+const DATE_TIME_DOT_PATTERN = /^\d{2}\.\d{2}\.\d{4}(?:\s+\d{2}:\d{2})?/;
+const TIME_PATTERN = /\d{2}:\d{2}/;
+
+export function parseDateLabel(label: string): Date | null {
+  const trimmed = label.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const looksLikeDate =
+    DATE_ONLY_PATTERN.test(trimmed) ||
+    DATE_TIME_ISO_PATTERN.test(trimmed) ||
+    DATE_TIME_SLASH_PATTERN.test(trimmed) ||
+    DATE_TIME_DOT_PATTERN.test(trimmed);
+  if (!looksLikeDate) {
+    return null;
+  }
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function hasTimeLabel(label: string): boolean {
+  return TIME_PATTERN.test(label.trim());
+}
+
+export function formatDateLabel(date: Date, withTime: boolean): string {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const base = `${day}/${month}/${year}`;
+  if (withTime) {
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${base} ${hours}:${minutes}`;
+  }
+  return base;
+}
+
+export function pointsAreDates(points: ControlChartPoint[]): boolean {
+  const labeled = points.filter((point) => point.label.trim() !== "");
+  if (labeled.length === 0) {
+    return false;
+  }
+  const parsedCount = labeled.filter(
+    (point) => parseDateLabel(point.label) !== null,
+  ).length;
+  return parsedCount >= Math.ceil(labeled.length / 2);
+}
+
+export function pointsHaveTime(points: ControlChartPoint[]): boolean {
+  return points.some((point) => hasTimeLabel(point.label));
 }
 
 export function countOutOfControl(chart: ControlChart): number {

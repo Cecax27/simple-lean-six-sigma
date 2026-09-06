@@ -12,6 +12,11 @@ import type {
   ControlChartPoint,
 } from "@/tools/carta-control/types";
 
+export interface PointRange {
+  start: number;
+  end: number;
+}
+
 export interface ChartColors {
   text: string;
   grid: string;
@@ -54,6 +59,8 @@ interface ControlChartSvgProps {
   width: number;
   height: number;
   colors: ChartColors;
+  range?: PointRange;
+  fit?: boolean;
   renderPointExtras?: (
     point: ControlChartPoint,
     x: number,
@@ -67,12 +74,20 @@ export function ControlChartSvg({
   width,
   height,
   colors,
+  range,
+  fit = false,
   renderPointExtras,
 }: ControlChartSvgProps) {
   const { points } = chart;
+  const totalPoints = points.length;
+  const rangeStart = range ? Math.max(0, range.start) : 0;
+  const rangeEnd = range
+    ? Math.min(totalPoints - 1, range.end)
+    : totalPoints - 1;
+
   const centerLine = computeCenterLine(chart);
-  const range = computeYRange(chart);
-  const rangeSpan = range.max - range.min || 1;
+  const rangeObj = computeYRange(chart);
+  const rangeSpan = rangeObj.max - rangeObj.min || 1;
 
   const plotLeft = MARGIN.left;
   const plotRight = width - MARGIN.right;
@@ -81,15 +96,18 @@ export function ControlChartSvg({
   const plotWidth = plotRight - plotLeft;
   const plotHeight = plotBottom - plotTop;
 
+  const visibleCount = rangeEnd - rangeStart + 1;
+
   const xFor = (index: number): number => {
-    if (points.length === 0) {
-      return plotLeft;
+    if (visibleCount <= 1) {
+      return plotLeft + plotWidth / 2;
     }
-    return plotLeft + plotWidth * ((index + 0.5) / points.length);
+    const position = index - rangeStart;
+    return plotLeft + plotWidth * ((position + 0.5) / visibleCount);
   };
 
   const yFor = (value: number): number => {
-    return plotTop + plotHeight * (1 - (value - range.min) / rangeSpan);
+    return plotTop + plotHeight * (1 - (value - rangeObj.min) / rangeSpan);
   };
 
   const yTickCount = Math.max(2, chart.axes.yTickCount || 5);
@@ -97,20 +115,31 @@ export function ControlChartSvg({
 
   const yTicks: number[] = [];
   for (let i = 0; i < yTickCount; i += 1) {
-    yTicks.push(range.min + rangeSpan * (i / (yTickCount - 1)));
+    yTicks.push(rangeObj.min + rangeSpan * (i / (yTickCount - 1)));
   }
 
-  const polylinePoints = points
-    .map((point, index) => `${xFor(index)},${yFor(point.value)}`)
+  const visiblePoints = points.filter(
+    (_, index) => index >= rangeStart && index <= rangeEnd,
+  );
+
+  const polylinePoints = visiblePoints
+    .map((point, position) => {
+      const index = rangeStart + position;
+      return `${xFor(index)},${yFor(point.value)}`;
+    })
     .join(" ");
 
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="h-auto w-full"
+      preserveAspectRatio="xMidYMid meet"
+      className={fit ? "h-full w-full" : undefined}
       role="img"
       aria-label={chart.title || "Carta de control"}
-      style={{ backgroundColor: colors.background }}
+      style={{
+        backgroundColor: colors.background,
+        ...(fit ? {} : { width: `${width}px`, height: `${height}px` }),
+      }}
     >
       {yTicks.map((tick) => {
         const y = yFor(tick);
@@ -154,8 +183,9 @@ export function ControlChartSvg({
         strokeWidth={1.5}
       />
 
-      {points.map((point, index) => {
-        if (index % xTickStep !== 0) {
+      {visiblePoints.map((point, position) => {
+        const index = rangeStart + position;
+        if (position % xTickStep !== 0) {
           return null;
         }
         return (
@@ -167,7 +197,7 @@ export function ControlChartSvg({
             fontSize={11}
             fill={colors.axis}
           >
-            {truncate(getPointXLabel(point, index), 12)}
+            {truncate(getPointXLabel(point, index), 16)}
           </text>
         );
       })}
@@ -244,7 +274,7 @@ export function ControlChartSvg({
         </g>
       ) : null}
 
-      {points.length > 1 ? (
+      {visibleCount > 1 ? (
         <polyline
           points={polylinePoints}
           fill="none"
@@ -255,7 +285,8 @@ export function ControlChartSvg({
         />
       ) : null}
 
-      {points.map((point, index) => {
+      {visiblePoints.map((point, position) => {
+        const index = rangeStart + position;
         const x = xFor(index);
         const y = yFor(point.value);
         const out = isPointOutOfControl(point, chart);
