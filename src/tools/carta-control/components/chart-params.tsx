@@ -2,8 +2,8 @@
 
 import { Info } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cartaControlTooltips } from "@/tools/carta-control/carta-control-tooltips";
@@ -108,25 +108,26 @@ export function ChartParams({ chart }: ChartParamsProps) {
 
         <section className="space-y-2">
           <FieldLabel tooltipKey="center_line_mode" text="Linea central" />
-          <RadioGroup
-            value={chart.centerLine.mode}
-            onValueChange={(value) =>
-              setCenterLineMode(value === "manual" ? "manual" : "auto")
-            }
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="auto" id="cl-auto" />
-              <label htmlFor="cl-auto" className="text-sm">
-                Automatica (media)
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="manual" id="cl-manual" />
-              <label htmlFor="cl-manual" className="text-sm">
-                Manual
-              </label>
-            </div>
-          </RadioGroup>
+          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+            <Button
+              type="button"
+              variant={chart.centerLine.mode === "auto" ? "default" : "ghost"}
+              size="sm"
+              className="flex-1"
+              onClick={() => setCenterLineMode("auto")}
+            >
+              Automatica
+            </Button>
+            <Button
+              type="button"
+              variant={chart.centerLine.mode === "manual" ? "default" : "ghost"}
+              size="sm"
+              className="flex-1"
+              onClick={() => setCenterLineMode("manual")}
+            >
+              Manual
+            </Button>
+          </div>
           {chart.centerLine.mode === "manual" ? (
             <Input
               type="number"
