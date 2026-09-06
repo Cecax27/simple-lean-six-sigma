@@ -4,8 +4,9 @@ import {
   computeCenterLine,
   computeYRange,
   formatValue,
-  getPointXLabel,
+  formatXTickLabel,
   isPointOutOfControl,
+  shouldShowXTick,
 } from "@/tools/carta-control/chart";
 import type {
   ControlChart,
@@ -111,7 +112,6 @@ export function ControlChartSvg({
   };
 
   const yTickCount = Math.max(2, chart.axes.yTickCount || 5);
-  const xTickStep = Math.max(1, chart.axes.xTickStep || 1);
 
   const yTicks: number[] = [];
   for (let i = 0; i < yTickCount; i += 1) {
@@ -185,7 +185,7 @@ export function ControlChartSvg({
 
       {visiblePoints.map((point, position) => {
         const index = rangeStart + position;
-        if (position % xTickStep !== 0) {
+        if (!shouldShowXTick(points, index, chart.axes.xTickGranularity, chart.axes.xTickStep)) {
           return null;
         }
         return (
@@ -197,7 +197,7 @@ export function ControlChartSvg({
             fontSize={11}
             fill={colors.axis}
           >
-            {truncate(getPointXLabel(point, index), 16)}
+            {truncate(formatXTickLabel(point, index, chart.axes.xTickGranularity), 16)}
           </text>
         );
       })}

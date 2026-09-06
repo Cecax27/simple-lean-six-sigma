@@ -22,8 +22,11 @@ export interface ChartCenterLine {
   value: number;
 }
 
+export type XTickGranularity = "all" | "day" | "week" | "month" | "year";
+
 export interface ChartAxes {
   xTickStep: number;
+  xTickGranularity: XTickGranularity;
   yTickCount: number;
   yMin: number | null;
   yMax: number | null;

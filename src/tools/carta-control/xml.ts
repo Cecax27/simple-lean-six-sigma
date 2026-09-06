@@ -8,6 +8,7 @@ import type {
   ChartLimits,
   ControlChart,
   ControlChartPoint,
+  XTickGranularity,
 } from "@/tools/carta-control/types";
 
 const pointSchema = z.object({
@@ -39,6 +40,7 @@ const centerLineSchema = z.object({
 
 const axesSchema = z.object({
   "@_xTickStep": z.union([z.string(), z.number()]).optional(),
+  "@_xTickGranularity": z.string().optional(),
   "@_yTickCount": z.union([z.string(), z.number()]).optional(),
   "@_yMin": z.union([z.string(), z.number()]).optional(),
   "@_yMax": z.union([z.string(), z.number()]).optional(),
@@ -139,6 +141,7 @@ function mapCenterLine(raw: Record<string, unknown> | undefined): ChartCenterLin
 function mapAxes(raw: Record<string, unknown> | undefined): ChartAxes {
   const defaults: ChartAxes = {
     xTickStep: 1,
+    xTickGranularity: "all",
     yTickCount: 5,
     yMin: null,
     yMax: null,
@@ -148,10 +151,23 @@ function mapAxes(raw: Record<string, unknown> | undefined): ChartAxes {
   }
   return {
     xTickStep: Math.max(1, Math.round(asNumber(raw["@_xTickStep"], 1))),
+    xTickGranularity: mapGranularity(raw["@_xTickGranularity"]),
     yTickCount: Math.max(2, Math.round(asNumber(raw["@_yTickCount"], 5))),
     yMin: raw["@_yMin"] === undefined ? null : asNumber(raw["@_yMin"], 0),
     yMax: raw["@_yMax"] === undefined ? null : asNumber(raw["@_yMax"], 0),
   };
+}
+
+function mapGranularity(value: unknown): XTickGranularity {
+  if (
+    value === "day" ||
+    value === "week" ||
+    value === "month" ||
+    value === "year"
+  ) {
+    return value;
+  }
+  return "all";
 }
 
 function mapChart(raw: Record<string, unknown>): ControlChart {
@@ -182,6 +198,7 @@ function limitNode(limit: { enabled: boolean; value: number }): Record<string, u
 function chartNode(chart: ControlChart): Record<string, unknown> {
   const axes: Record<string, unknown> = {
     "@_xTickStep": chart.axes.xTickStep,
+    "@_xTickGranularity": chart.axes.xTickGranularity,
     "@_yTickCount": chart.axes.yTickCount,
   };
   if (chart.axes.yMin !== null && chart.axes.yMin !== undefined) {

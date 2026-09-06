@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { pointsAreDates } from "@/tools/carta-control/chart";
 import { cartaControlTooltips } from "@/tools/carta-control/carta-control-tooltips";
 import { useCartaControlStore } from "@/tools/carta-control/store";
-import type { ControlChart } from "@/tools/carta-control/types";
+import type { ControlChart, XTickGranularity } from "@/tools/carta-control/types";
 
 interface ChartParamsProps {
   chart: ControlChart;
@@ -145,20 +146,70 @@ export function ChartParams({ chart }: ChartParamsProps) {
         </section>
 
         <section className="space-y-2">
-          <FieldLabel tooltipKey="x_tick" text="Paso de etiquetas (eje X)" />
-          <Input
-            type="number"
-            min={1}
-            step={1}
-            value={chart.axes.xTickStep}
-            onChange={(event) => {
-              const parsed = numberOr(event.target.value);
-              if (parsed !== null && parsed >= 1) {
-                setAxes({ xTickStep: Math.round(parsed) });
-              }
-            }}
-            className="text-sm"
-          />
+          {pointsAreDates(chart.points) ? (
+            <>
+              <FieldLabel tooltipKey="x_granularity" text="Etiquetas del eje X" />
+              <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-muted/40 p-1">
+                {(
+                  [
+                    ["all", "Todas"],
+                    ["day", "Dia"],
+                    ["week", "Semana"],
+                    ["month", "Mes"],
+                    ["year", "Ano"],
+                  ] as [XTickGranularity, string][]
+                ).map(([granularity, label]) => (
+                  <Button
+                    key={granularity}
+                    type="button"
+                    variant={
+                      chart.axes.xTickGranularity === granularity ? "default" : "ghost"
+                    }
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setAxes({ xTickGranularity: granularity })}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+              {chart.axes.xTickGranularity === "all" ? (
+                <div className="space-y-2 pt-1">
+                  <FieldLabel tooltipKey="x_tick" text="Paso de etiquetas" />
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={chart.axes.xTickStep}
+                    onChange={(event) => {
+                      const parsed = numberOr(event.target.value);
+                      if (parsed !== null && parsed >= 1) {
+                        setAxes({ xTickStep: Math.round(parsed) });
+                      }
+                    }}
+                    className="text-sm"
+                  />
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <FieldLabel tooltipKey="x_tick" text="Paso de etiquetas (eje X)" />
+              <Input
+                type="number"
+                min={1}
+                step={1}
+                value={chart.axes.xTickStep}
+                onChange={(event) => {
+                  const parsed = numberOr(event.target.value);
+                  if (parsed !== null && parsed >= 1) {
+                    setAxes({ xTickStep: Math.round(parsed) });
+                  }
+                }}
+                className="text-sm"
+              />
+            </>
+          )}
         </section>
 
         <section className="space-y-2">

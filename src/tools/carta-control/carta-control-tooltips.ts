@@ -35,6 +35,10 @@ export const cartaControlTooltips: Record<string, { label: string; tip: string }
     label: "Paso de etiquetas (eje X)",
     tip: "Cada cuantas etiquetas del eje X se muestra una. Usa 1 para mostrar todas.",
   },
+  x_granularity: {
+    label: "Etiquetas del eje X",
+    tip: "Agrupa las etiquetas de fecha del eje X por dia, semana, mes o ano. Todas muestra una etiqueta por punto.",
+  },
   y_tick: {
     label: "Divisiones (eje Y)",
     tip: "Numero de divisiones del eje Y. Define la cantidad de lineas de la cuadricula.",

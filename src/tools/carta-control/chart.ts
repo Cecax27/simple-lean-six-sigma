@@ -1,6 +1,7 @@
 import type {
   ControlChart,
   ControlChartPoint,
+  XTickGranularity,
 } from "@/tools/carta-control/types";
 
 export function uid(prefix: string): string {
@@ -18,7 +19,13 @@ export function createChart(title: string): ControlChart {
       lower: { enabled: true, value: 0 },
     },
     centerLine: { mode: "auto", value: 0 },
-    axes: { xTickStep: 1, yTickCount: 5, yMin: null, yMax: null },
+    axes: {
+      xTickStep: 1,
+      xTickGranularity: "all",
+      yTickCount: 5,
+      yMin: null,
+      yMax: null,
+    },
   };
 }
 
@@ -231,6 +238,107 @@ export function pointsAreDates(points: ControlChartPoint[]): boolean {
 
 export function pointsHaveTime(points: ControlChartPoint[]): boolean {
   return points.some((point) => hasTimeLabel(point.label));
+}
+
+const SHORT_MONTHS = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
+];
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+export function formatXTickLabel(
+  point: ControlChartPoint,
+  index: number,
+  granularity: XTickGranularity,
+): string {
+  const date = parseDateLabel(point.label);
+  if (!date) {
+    return point.label.trim() || String(index + 1);
+  }
+
+  switch (granularity) {
+    case "year":
+      return String(date.getFullYear());
+    case "month":
+      return `${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+    case "week":
+      return `${pad2(date.getDate())} ${SHORT_MONTHS[date.getMonth()]}`;
+    case "day":
+      return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${String(date.getFullYear()).slice(2)}`;
+    case "all":
+    default:
+      return formatDateLabel(date, hasTimeLabel(point.label));
+  }
+}
+
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function startOfWeek(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  const day = result.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  result.setDate(result.getDate() + diff);
+  return result;
+}
+
+function sameWeek(a: Date, b: Date): boolean {
+  return startOfWeek(a).getTime() === startOfWeek(b).getTime();
+}
+
+export function shouldShowXTick(
+  points: ControlChartPoint[],
+  position: number,
+  granularity: XTickGranularity,
+  step: number,
+): boolean {
+  if (granularity === "all") {
+    return position % Math.max(1, step) === 0;
+  }
+  if (position === 0) {
+    return true;
+  }
+
+  const current = parseDateLabel(points[position].label);
+  const previous = parseDateLabel(points[position - 1].label);
+  if (!current || !previous) {
+    return true;
+  }
+
+  switch (granularity) {
+    case "year":
+      return current.getFullYear() !== previous.getFullYear();
+    case "month":
+      return (
+        current.getFullYear() !== previous.getFullYear() ||
+        current.getMonth() !== previous.getMonth()
+      );
+    case "week":
+      return !sameWeek(current, previous);
+    case "day":
+      return !sameDay(current, previous);
+    default:
+      return true;
+  }
 }
 
 export function countOutOfControl(chart: ControlChart): number {
