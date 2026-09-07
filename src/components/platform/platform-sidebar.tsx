@@ -9,6 +9,7 @@ import {
   Settings2,
   Wrench,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useState } from "react";
@@ -22,7 +23,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { TOOLS } from "@/tools/registry";
+import { TOOL_CATEGORIES, TOOLS } from "@/tools/registry";
 import { usePreferencesStore } from "@/store/preferences-store";
 import { ToolMenusZone } from "@/components/platform/menus/tool-menus-zone";
 
@@ -52,16 +53,31 @@ export function PlatformSidebar() {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden h-full shrink-0 rounded-xl border bg-card p-3 shadow-sm transition-all duration-300 md:flex md:flex-col",
+          "hidden h-full shrink-0 rounded-lg border bg-card p-3 transition-all duration-300 md:flex md:flex-col",
           sidebarCollapsed ? "md:w-16" : "md:w-64",
         )}
       >
         {/* Brand */}
         <div className={cn("mb-4 flex items-center", sidebarCollapsed ? "justify-center" : "justify-between")}>
           {sidebarCollapsed ? (
-            <span className="text-xs font-bold text-primary">LSS</span>
+            <Image
+              src="/images/logo.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="size-8 shrink-0"
+            />
           ) : (
-            <span className="text-sm font-semibold leading-tight">Simple Lean Six Sigma</span>
+            <span className="flex items-center gap-2">
+              <Image
+                src="/images/logo.png"
+                alt="Logo"
+                width={32}
+                height={32}
+                className="size-8 shrink-0"
+              />
+              <span className="text-sm font-semibold leading-tight">Simple Lean Six Sigma</span>
+            </span>
           )}
           <Button
             size="icon-sm"
@@ -101,20 +117,31 @@ export function PlatformSidebar() {
         {!sidebarCollapsed && (
           <>
             <div className="mb-2 px-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-medium text-muted-foreground">
                 Herramientas
               </p>
             </div>
-            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-              {TOOLS.map((tool) => (
-                <ToolNavLink
-                  key={tool.id}
-                  href={tool.hrefBase}
-                  label={tool.nameEs}
-                  active={pathname.startsWith(tool.hrefBase)}
-                  disabled={tool.status === "soon"}
-                />
-              ))}
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+              {TOOL_CATEGORIES.map((category) => {
+                const tools = TOOLS.filter((tool) => tool.category === category.id);
+                if (tools.length === 0) return null;
+                return (
+                  <div key={category.id} className="space-y-0.5">
+                    <p className="px-1 pb-1 text-[11px] font-medium text-muted-foreground/70">
+                      {category.labelEs}
+                    </p>
+                    {tools.map((tool) => (
+                      <ToolNavLink
+                        key={tool.id}
+                        href={tool.hrefBase}
+                        label={tool.nameEs}
+                        active={pathname.startsWith(tool.hrefBase)}
+                        disabled={tool.status === "soon"}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
@@ -251,34 +278,45 @@ function MobileSidebar({
           </nav>
 
           <div className="mt-2 border-t pt-3">
-            <p className="mb-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">
               Herramientas
             </p>
-            <div className="space-y-1">
-              {TOOLS.map((tool) =>
-                tool.status === "ready" ? (
-                  <Link key={tool.id} href={tool.hrefBase} className="block">
-                    <Button
-                      variant={isActive(tool.hrefBase) ? "secondary" : "ghost"}
-                      size="sm"
-                      className="w-full justify-start"
-                    >
-                      <Wrench className="mr-2 size-4" /> {tool.nameEs}
-                    </Button>
-                  </Link>
-                ) : (
-                  <Button
-                    key={tool.id}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-muted-foreground/50"
-                    disabled
-                  >
-                    <Wrench className="mr-2 size-4 opacity-50" /> {tool.nameEs}
-                    <span className="ml-auto text-[10px]">Proximamente</span>
-                  </Button>
-                ),
-              )}
+            <div className="space-y-3">
+              {TOOL_CATEGORIES.map((category) => {
+                const tools = TOOLS.filter((tool) => tool.category === category.id);
+                if (tools.length === 0) return null;
+                return (
+                  <div key={category.id} className="space-y-0.5">
+                    <p className="px-1 pb-1 text-[11px] font-medium text-muted-foreground/70">
+                      {category.labelEs}
+                    </p>
+                    {tools.map((tool) =>
+                      tool.status === "ready" ? (
+                        <Link key={tool.id} href={tool.hrefBase} className="block">
+                          <Button
+                            variant={isActive(tool.hrefBase) ? "secondary" : "ghost"}
+                            size="sm"
+                            className="w-full justify-start"
+                          >
+                            <Wrench className="mr-2 size-4" /> {tool.nameEs}
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button
+                          key={tool.id}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-muted-foreground/50"
+                          disabled
+                        >
+                          <Wrench className="mr-2 size-4 opacity-50" /> {tool.nameEs}
+                          <span className="ml-auto text-[10px]">Proximamente</span>
+                        </Button>
+                      ),
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

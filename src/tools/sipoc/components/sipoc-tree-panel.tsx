@@ -70,7 +70,7 @@ export function SipocTreePanel() {
   return (
     <div className="space-y-2">
       <div className="px-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Arbol SIPOC</p>
+        <p className="text-xs font-medium text-muted-foreground">Arbol SIPOC</p>
         <p className="text-[11px] text-muted-foreground/80">Navega por niveles anidados del diagrama.</p>
       </div>
       {renderNode(tree, 0)}

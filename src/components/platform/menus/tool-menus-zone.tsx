@@ -57,7 +57,7 @@ export function ToolMenusZone({ collapsed }: ToolMenusZoneProps) {
 
   return (
     <div className="mt-3 border-t pt-3 space-y-1">
-      <p className="text-[11px] text-muted-foreground px-1">
+      <p className="text-[11px] font-medium text-muted-foreground px-1">
         Herramienta
       </p>
       <FileMenu descriptor={fileDescriptor} />

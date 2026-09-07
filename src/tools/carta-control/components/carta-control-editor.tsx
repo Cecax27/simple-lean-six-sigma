@@ -1,23 +1,32 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Info, Plus, RotateCcw } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, Info, Pencil, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ishikawaTooltips } from "@/tools/ishikawa/ishikawa-tooltips";
+import { ChartCanvas } from "@/tools/carta-control/components/chart-canvas";
+import { DisplayControls } from "@/tools/carta-control/components/chart-display-controls";
+import type { PointRange } from "@/tools/carta-control/components/control-chart-svg";
+import { ChartParams } from "@/tools/carta-control/components/chart-params";
+import { PointsTable } from "@/tools/carta-control/components/points-table";
+import { ImportCsvDialog } from "@/tools/carta-control/components/import-csv-dialog";
+import { PointEditDialog } from "@/tools/carta-control/components/point-edit-dialog";
+import { HelpDialog } from "@/tools/carta-control/components/help-dialog";
+import { cartaControlTooltips } from "@/tools/carta-control/carta-control-tooltips";
 import { exportAsPdf, exportAsPng, exportAsSvg } from "@/lib/export/client-export";
 import type { ExportFormat, ExportOptions } from "@/lib/export/types";
-import { serializeToXml, parseFromXml } from "@/tools/ishikawa/xml";
-import { ishikawaExportLayouts, ishikawaExportFields } from "@/tools/ishikawa/types";
-import { useIshikawaStore } from "@/tools/ishikawa/store";
+import { serializeToXml, parseFromXml } from "@/tools/carta-control/xml";
+import {
+  cartaControlExportLayouts,
+  cartaControlExportFields,
+} from "@/tools/carta-control/types";
+import type { ControlChartPoint } from "@/tools/carta-control/types";
+import { useCartaControlStore } from "@/tools/carta-control/store";
 import { useDocsStore } from "@/store/docs-store";
-import { CategoryCard } from "@/tools/ishikawa/components/category-card";
-import { EffectField } from "@/tools/ishikawa/components/effect-field";
-import { ExportDiagram } from "@/tools/ishikawa/components/export-diagram";
-import { HelpDialog } from "@/tools/ishikawa/components/help-dialog";
+import { ExportChart } from "@/tools/carta-control/components/export-chart";
 import {
   useToolMenus,
   type ExportDescriptor,
@@ -31,55 +40,49 @@ interface FeedbackMessage {
   message: string;
 }
 
-interface IshikawaEditorProps {
+type ViewMode = "display" | "edit";
+
+interface CartaControlEditorProps {
   docId: string;
 }
 
-export function IshikawaEditor({ docId }: IshikawaEditorProps) {
+export function CartaControlEditor({ docId }: CartaControlEditorProps) {
   const exportAreaRef = useRef<HTMLDivElement>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
+  const [view, setView] = useState<ViewMode>("display");
+  const [editingPoint, setEditingPoint] = useState<ControlChartPoint | null>(null);
+  const [displayRange, setDisplayRange] = useState<PointRange | null>(null);
   const loadedRef = useRef(false);
 
-  const root = useIshikawaStore((state) => state.root);
-  const setTitle = useIshikawaStore((state) => state.setTitle);
-  const setEffect = useIshikawaStore((state) => state.setEffect);
-  const addCategory = useIshikawaStore((state) => state.addCategory);
-  const removeCategory = useIshikawaStore((state) => state.removeCategory);
-  const renameCategory = useIshikawaStore((state) => state.renameCategory);
-  const moveCategoryUp = useIshikawaStore((state) => state.moveCategoryUp);
-  const moveCategoryDown = useIshikawaStore((state) => state.moveCategoryDown);
-  const addCause = useIshikawaStore((state) => state.addCause);
-  const removeCause = useIshikawaStore((state) => state.removeCause);
-  const renameCause = useIshikawaStore((state) => state.renameCause);
-  const setCauseDescription = useIshikawaStore((state) => state.setCauseDescription);
-  const replaceRoot = useIshikawaStore((state) => state.replaceRoot);
-  const resetDiagram = useIshikawaStore((state) => state.reset);
+  const root = useCartaControlStore((state) => state.root);
+  const setTitle = useCartaControlStore((state) => state.setTitle);
+  const setUnit = useCartaControlStore((state) => state.setUnit);
+  const replaceRoot = useCartaControlStore((state) => state.replaceRoot);
+  const resetDiagram = useCartaControlStore((state) => state.reset);
 
   const docTitle = useDocsStore((state) => state.getDoc(docId))?.title ?? "Sin titulo";
   const getDocData = useDocsStore((state) => state.getDocData);
   const setDocData = useDocsStore((state) => state.setDocData);
   const renameDoc = useDocsStore((state) => state.renameDoc);
 
-  const [newCategoryValue, setNewCategoryValue] = useState("");
-
-  // Load doc data on mount
   useEffect(() => {
     if (loadedRef.current) return;
     const data = getDocData(docId);
     if (data) {
       replaceRoot(data as never);
     }
+    const hasPoints =
+      useCartaControlStore.getState().root.points.length > 0;
+    setView(hasPoints ? "display" : "edit");
     loadedRef.current = true;
   }, [docId, getDocData, replaceRoot]);
 
-  // Sync changes back to docs-store
   useEffect(() => {
     if (!loadedRef.current) return;
     setDocData(docId, root);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [root]);
 
-  // Sync doc title
   useEffect(() => {
     if (!loadedRef.current) return;
     if (root.title && root.title !== docTitle) {
@@ -98,20 +101,13 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
     setFeedback({ tone, message });
   }
 
-  function handleAddCategory() {
-    const trimmed = newCategoryValue.trim();
-    if (!trimmed) return;
-    addCategory(trimmed);
-    setNewCategoryValue("");
-  }
-
   const downloadXml = useCallback((): void => {
     const xml = serializeToXml(root);
     const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${docTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "diagrama-ishikawa"}.xml`;
+    anchor.download = `${docTitle.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "") || "carta-control"}.xml`;
     document.body.append(anchor);
     anchor.click();
     anchor.remove();
@@ -122,8 +118,9 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
   const handleLoadXml = useCallback(async (file: File): Promise<void> => {
     const text = await file.text();
     try {
-      const diagram = parseFromXml(text);
-      replaceRoot(diagram);
+      const chart = parseFromXml(text);
+      replaceRoot(chart);
+      setView(chart.points.length > 0 ? "display" : "edit");
       pushFeedback("success", "XML cargado correctamente.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo cargar el XML.";
@@ -135,13 +132,13 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
 
   const exportDescriptor = useMemo<ExportDescriptor | null>(() => ({
     docId,
-    toolId: "ishikawa",
+    toolId: "carta-control",
     title: docTitle,
-    layouts: ishikawaExportLayouts,
-    fields: ishikawaExportFields,
+    layouts: cartaControlExportLayouts,
+    fields: cartaControlExportFields,
     formats: ["svg", "png", "pdf"],
     renderPreview: (opts: ExportOptions) => (
-      <ExportDiagram diagram={root} options={opts} />
+      <ExportChart chart={root} options={opts} />
     ),
     export: async (format: ExportFormat, opts: ExportOptions) => {
       if (!exportAreaRef.current) {
@@ -158,7 +155,7 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
         }
         pushFeedback("success", `Exportacion ${format.toUpperCase()} completada.`);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "No se pudo exportar el diagrama.";
+        const message = error instanceof Error ? error.message : "No se pudo exportar la carta.";
         pushFeedback("error", message);
       }
     },
@@ -166,7 +163,7 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
 
   const fileDescriptor = useMemo<FileDescriptor | null>(() => ({
     docId,
-    toolId: "ishikawa",
+    toolId: "carta-control",
     title: docTitle,
     fileExtension: "xml",
     save: downloadXml,
@@ -194,7 +191,6 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-hidden">
-      {/* Feedback toast */}
       {feedback && feedbackMeta ? (
         <div className="pointer-events-none fixed inset-x-0 top-3 z-50 px-3 md:top-4 md:px-6">
           <Alert
@@ -208,90 +204,108 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
         </div>
       ) : null}
 
-      {/* Header */}
       <header className="shrink-0 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Nombre del diagrama
-            </label>
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="inline-flex cursor-default">
-                  <Info className="size-3 text-muted-foreground/60" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Un nombre descriptivo para identificar este diagrama.</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-4">
-          <Input
-            value={root.title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="max-w-xs text-sm"
-          />
-        </div>
+          <div className="flex min-w-0 flex-1 flex-wrap items-end gap-4">
+            <div className="w-full max-w-xs space-y-2">
+              <div className="flex items-center gap-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {cartaControlTooltips.title.label}
+                </label>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <span className="inline-flex cursor-default">
+                      <Info className="size-3 text-muted-foreground/60" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{cartaControlTooltips.title.tip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Input value={root.title} onChange={(event) => setTitle(event.target.value)} />
+            </div>
 
-      </header>
-
-      {/* Effect field */}
-      <section className="shrink-0 rounded-lg border bg-card p-4">
-        <EffectField value={root.effect} onChange={setEffect} />
-      </section>
-
-      {/* Categories grid */}
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {root.categories.map((cat, index) => (
-            <CategoryCard
-              key={cat.id}
-              categoryId={cat.id}
-              label={cat.label}
-              causes={cat.causes}
-              index={index}
-              totalCategories={root.categories.length}
-              onRename={renameCategory}
-              onRemove={removeCategory}
-              onMoveUp={moveCategoryUp}
-              onMoveDown={moveCategoryDown}
-              onAddCause={addCause}
-              onRemoveCause={removeCause}
-              onRenameCause={renameCause}
-              onSetCauseDescription={setCauseDescription}
-            />
-          ))}
-
-          {/* Add category card */}
-          <div className="rounded-lg border-2 border-dashed border-muted p-6 flex flex-col items-center justify-center gap-3">
-            <p className="text-sm font-medium text-muted-foreground">Agregar categoria</p>
-            <div className="flex w-full gap-2">
+            <div className="w-full max-w-[8rem] space-y-2">
+              <div className="flex items-center gap-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {cartaControlTooltips.unit.label}
+                </label>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <span className="inline-flex cursor-default">
+                      <Info className="size-3 text-muted-foreground/60" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{cartaControlTooltips.unit.tip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
-                value={newCategoryValue}
-                onChange={(e) => setNewCategoryValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddCategory();
-                }}
-                placeholder="Nombre de la categoria..."
-                className="h-8 text-sm"
+                value={root.unit}
+                placeholder="mm"
+                onChange={(event) => setUnit(event.target.value)}
               />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAddCategory}
-                disabled={!newCategoryValue.trim()}
-                className="shrink-0 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-              >
-                <Plus className="mr-1 size-3.5" /> Agregar
-              </Button>
             </div>
           </div>
-        </div>
-      </main>
 
-      {/* Toolbar */}
+          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+            <Button
+              variant={view === "display" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("display")}
+              title={cartaControlTooltips.view_display.tip}
+            >
+              <Eye className="mr-1 size-4" /> Vista
+            </Button>
+            <Button
+              variant={view === "edit" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setView("edit")}
+              title={cartaControlTooltips.view_edit.tip}
+            >
+              <Pencil className="mr-1 size-4" /> Edicion
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {view === "display" ? (
+        <main className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-lg border bg-card p-4">
+          <section className="shrink-0">
+            <DisplayControls points={root.points} onChange={setDisplayRange} />
+          </section>
+          <section className="min-h-0 flex-1">
+            <ChartCanvas chart={root} range={displayRange ?? undefined} />
+          </section>
+        </main>
+      ) : (
+        <main className="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain lg:grid-cols-[1fr_320px]">
+          <div className="flex min-h-0 flex-col gap-4">
+            <section className="h-[360px] rounded-lg border bg-card p-4">
+              <ChartCanvas
+                chart={root}
+                onPointClick={(point) => setEditingPoint(point)}
+              />
+            </section>
+            <section className="rounded-lg border bg-card p-4">
+              <PointsTable
+                points={root.points}
+                chart={root}
+                onEdit={(point) => setEditingPoint(point)}
+              />
+            </section>
+          </div>
+          <aside className="flex flex-col gap-4">
+            <ChartParams chart={root} />
+            <div className="rounded-lg border bg-card/60 p-3">
+              <ImportCsvDialog />
+            </div>
+          </aside>
+        </main>
+      )}
+
       <footer className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border bg-card/60 p-3">
         <HelpDialog />
         <Button
@@ -304,10 +318,16 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
         </Button>
       </footer>
 
-      {/* Hidden export area */}
+      {editingPoint ? (
+        <PointEditDialog
+          point={editingPoint}
+          onClose={() => setEditingPoint(null)}
+        />
+      ) : null}
+
       <section className="pointer-events-none fixed left-[-10000px] top-0" aria-hidden>
         <div ref={exportAreaRef}>
-          <ExportDiagram diagram={root} options={exportOptions} />
+          <ExportChart chart={root} options={exportOptions} />
         </div>
       </section>
     </div>
