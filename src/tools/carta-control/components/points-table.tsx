@@ -46,7 +46,7 @@ export function PointsTable({ points, chart, onEdit }: PointsTableProps) {
       ) : (
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr className="border-b text-left text-xs font-medium text-muted-foreground">
               <th className="py-1.5 pr-2 font-semibold">#</th>
               <th className="py-1.5 pr-2 font-semibold">
                 {cartaControlTooltips.point_label.label}

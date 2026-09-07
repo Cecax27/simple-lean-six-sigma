@@ -289,7 +289,7 @@ function ExportDialogContent({
         <div className="w-72 shrink-0 space-y-5 overflow-y-auto">
           {/* Layout */}
           <fieldset>
-            <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Palette className="size-3" />
               Diseno
             </Label>
@@ -323,7 +323,7 @@ function ExportDialogContent({
 
           {/* Format */}
           <fieldset>
-            <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Download className="size-3" />
               Formato
             </Label>
@@ -347,7 +347,7 @@ function ExportDialogContent({
 
           {/* Size */}
           <fieldset>
-            <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Ruler className="size-3" />
               Tamano
             </Label>
@@ -418,7 +418,7 @@ function ExportDialogContent({
 
           {/* Colors */}
           <fieldset>
-            <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Palette className="size-3" />
               Colores
             </Label>
@@ -467,7 +467,7 @@ function ExportDialogContent({
 
           {/* Watermark */}
           <fieldset>
-            <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <ToggleLeft className="size-3" />
               Marca de agua
             </Label>
@@ -500,7 +500,7 @@ function ExportDialogContent({
 
           {/* Fields */}
           <fieldset>
-            <Label className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Label className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Type className="size-3" />
               Campos
             </Label>

@@ -212,7 +212,7 @@ export function IshikawaEditor({ docId }: IshikawaEditorProps) {
       <header className="shrink-0 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-1">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Nombre del diagrama
             </label>
             <Tooltip>

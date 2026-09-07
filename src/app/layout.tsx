@@ -10,6 +10,9 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 export const metadata: Metadata = {
   title: "Simple Lean Six Sigma",
   description: "Plataforma web minimalista para herramientas Lean Six Sigma",
+  icons: {
+    icon: "/images/logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

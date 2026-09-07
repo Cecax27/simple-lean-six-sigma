@@ -144,7 +144,7 @@ export function ImportCsvDialog() {
           />
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Modo de importacion
             </label>
             <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">

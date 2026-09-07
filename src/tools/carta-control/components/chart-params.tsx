@@ -19,7 +19,7 @@ function FieldLabel({ tooltipKey, text }: { tooltipKey: string; text: string }) 
   const tip = cartaControlTooltips[tooltipKey];
   return (
     <div className="flex items-center gap-1">
-      <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <label className="text-xs font-medium text-muted-foreground">
         {text}
       </label>
       {tip ? (

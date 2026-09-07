@@ -209,7 +209,7 @@ export function CartaControlEditor({ docId }: CartaControlEditorProps) {
           <div className="flex min-w-0 flex-1 flex-wrap items-end gap-4">
             <div className="w-full max-w-xs space-y-2">
               <div className="flex items-center gap-1">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <label className="text-xs font-medium text-muted-foreground">
                   {cartaControlTooltips.title.label}
                 </label>
                 <Tooltip>
@@ -228,7 +228,7 @@ export function CartaControlEditor({ docId }: CartaControlEditorProps) {
 
             <div className="w-full max-w-[8rem] space-y-2">
               <div className="flex items-center gap-1">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <label className="text-xs font-medium text-muted-foreground">
                   {cartaControlTooltips.unit.label}
                 </label>
                 <Tooltip>

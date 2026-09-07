@@ -52,13 +52,13 @@ export function PointEditDialog({ point, onClose }: PointEditDialogProps) {
 
         <div className="space-y-3 px-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Etiqueta
             </label>
             <Input value={label} onChange={(event) => setLabel(event.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Valor
             </label>
             <Input
@@ -69,7 +69,7 @@ export function PointEditDialog({ point, onClose }: PointEditDialogProps) {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Comentario
             </label>
             <Textarea

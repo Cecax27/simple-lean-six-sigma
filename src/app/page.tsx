@@ -130,11 +130,11 @@ export default function LandingPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">{tool.nameEs}</h3>
                   {tool.status === "ready" ? (
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                    <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                       Disponible
                     </span>
                   ) : (
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <span className="text-[10px] font-medium text-muted-foreground">
                       Proximamente
                     </span>
                   )}

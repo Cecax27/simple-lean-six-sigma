@@ -103,7 +103,7 @@ export function DisplayControls({ points, onChange }: DisplayControlsProps) {
       {isDates ? (
         <>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Desde
             </label>
             <Input
@@ -114,7 +114,7 @@ export function DisplayControls({ points, onChange }: DisplayControlsProps) {
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Hasta
             </label>
             <Input
@@ -128,7 +128,7 @@ export function DisplayControls({ points, onChange }: DisplayControlsProps) {
       ) : (
         <>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Desde
             </label>
             <Input
@@ -144,7 +144,7 @@ export function DisplayControls({ points, onChange }: DisplayControlsProps) {
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Hasta
             </label>
             <Input
