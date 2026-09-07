@@ -434,7 +434,7 @@ function DimensionControls({
       {expanded && (
         <div className="px-3 pb-3 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            <h4 className="text-xs font-medium text-muted-foreground mb-2">
               Altura de filas
             </h4>
             {stages.map((stage) => (
@@ -458,7 +458,7 @@ function DimensionControls({
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            <h4 className="text-xs font-medium text-muted-foreground mb-2">
               Ancho de columnas
             </h4>
             {departments.map((dept) => (

@@ -15,7 +15,7 @@ export function EffectField({ value, onChange }: EffectFieldProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1">
-        <label className="block text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <label className="block text-sm font-medium text-muted-foreground">
           {ishikawaTooltips.effect.label}
         </label>
         <Tooltip>

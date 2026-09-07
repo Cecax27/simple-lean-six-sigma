@@ -235,7 +235,7 @@ export function CtqEditor({ docId }: CtqEditorProps) {
           <div className="flex items-center gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-1">
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <label className="block text-xs font-medium text-muted-foreground">
                   {ctqTooltips.title.label}
                 </label>
                 <Tooltip>

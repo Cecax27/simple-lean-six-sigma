@@ -223,7 +223,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
       {treePanelOpen && (
         <aside className="hidden h-full w-64 shrink-0 overflow-y-auto rounded-xl border bg-card p-3 shadow-sm md:block">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               Arbol SIPOC
             </span>
             <Button
@@ -278,7 +278,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <label className="block text-xs font-medium text-muted-foreground">
                     Nombre del proceso
                   </label>
                   <Tooltip>
@@ -297,7 +297,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <label className="block text-xs font-medium text-muted-foreground">
                     Inicio del proceso
                   </label>
                   <Tooltip>
@@ -320,7 +320,7 @@ export function SipocEditor({ docId }: SipocEditorProps) {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <label className="block text-xs font-medium text-muted-foreground">
                     Fin del proceso
                   </label>
                   <Tooltip>
